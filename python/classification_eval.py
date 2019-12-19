@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# part 2/3 testing
+
 import sys
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
