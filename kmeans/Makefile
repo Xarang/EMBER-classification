@@ -8,6 +8,7 @@ OBJ=kmeans.o
 all: $(BIN)
 
 $(BIN): $(OBJ)
+	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o $@
 
 clean:
 	$(RM) $(OBJ) $(BIN)
