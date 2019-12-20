@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# part 2/3 testing
+# part accuracy check
 
 import sys
 import numpy as np
