@@ -8,10 +8,10 @@ To launch the kmeans please type the following commands:
 
 cd kmeans
 make
-./kmeans 3 20 1.0 2351 200000 [PATH TO XTest.dat] out.dat
+./kmeans 3 20 1.0 2351 900000 [PATH TO X.dat] out.dat
 
 To check the accuracy (if you are in kmeans directory)
 
 cd ../python
 pip install -r requirements.txt --user
-python eval.py ../out.dat  [PATH TO YTEST.dat]
+python eval.py ../out.dat  [PATH TO Y.dat]
