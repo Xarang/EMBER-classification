@@ -1,3 +1,5 @@
+#!/bin/sh
+
 CURRENT=$PWD
 DIR=$(dirname $0)
 cd $DIR
