@@ -10,6 +10,11 @@
 #include <omp.h>
 #include <unistd.h>
 
+#define MIN_ERR 1.0
+#define MAX_ITER 20.0
+
+#define TOLERATED_ERROR_THRESHOLD 50.0 //? sort this out
+
 /*
 ** map file `filename` into memory
 */
@@ -37,7 +42,6 @@ float *load_data(char *filename, unsigned nb_vec, unsigned dim)
 /*
 ** writes `data` buffer into file `filename`
 */
-
 void write_class_in_float_format(unsigned char *data,
         unsigned nb_elt, char *filename) 
 {
@@ -54,29 +58,39 @@ void write_class_in_float_format(unsigned char *data,
     fclose(fp);
 }
 
-
+/*
+** euclidian distance between 2 vectors of dimension dim
+** use case: vec1 -> some vector; vec2 -> mean vector of cluster k
+*/
 double distance(float *vec1, float *vec2, unsigned dim) 
 {
     double dist = 0;
-    for(unsigned i = 0; i < dim; ++i, ++vec1, ++vec2) 
+    for (unsigned i = 0; i < dim; ++i, ++vec1, ++vec2) 
     {
         double d = *vec1 - *vec2;
         dist += d * d;
     }
-
     return sqrt(dist);
 }
 
+/*
+** return closest (min(distance)) cluster of vector `vec` of dimensions `dim`
+** computes distance between vector vec and mean vector of each cluster
+** sets the distance between the vector and its closest cluster in error `e`
+** (`ideally` each vectors should be exactly alligned on their cluster,
+** any difference is computed as error)
+*/
 unsigned char classify(float *vec, float *means, unsigned dim,
-                       unsigned char K, double *e) 
+                       unsigned char k, double *e) 
 {
     unsigned char min = 0;
     float dist, dist_min = FLT_MAX;
 
-    for(unsigned i = 0; i < K; ++i) 
+    //calls distance k times
+    for (unsigned i = 0; i < k; ++i) 
     {
         dist = distance(vec, means + i * dim, dim);
-        if(dist < dist_min) 
+        if (dist < dist_min) 
         {
             dist_min = dist;
             min = i;
@@ -89,80 +103,116 @@ unsigned char classify(float *vec, float *means, unsigned dim,
 
 static inline void print_result(int iter, double time, float err)
 {
-    if (getenv("TEST") != NULL)
-        printf("{\"iteration\": \"%d\", \"time\": \"%lf\", \"error\": \"%f\"}\n", iter, time, err);
-    else
-        printf("Iteration: %d, Time: %lf, Error: %f\n", iter, time, err);
+        printf("[KMEANS] Iteration: %d, Time: %lf, error_diff: %f\n", iter, time, err);
 }
 
+void compute_means_card(float *data, float *means, unsigned *card, unsigned char *c, unsigned nb_vec, unsigned dim, unsigned k)
+{
+  //initialise all means to 0
+    for (unsigned i = 0; i < dim * k; ++i)
+        means[i] = 0.;
+    //initialise all cards to 0
+    for (unsigned i = 0; i < k; ++i)
+        card[i] = 0.;
+
+    //for each vector in data
+    for (unsigned i = 0; i < nb_vec; ++i) 
+    {
+        //for each float in vector
+        for (unsigned j = 0; j < dim; ++j)
+        {
+            //add the values of the vector to the mean of the cluster that contains this vector
+            means[c[i] * dim + j] += data[i * dim  + j];
+        }
+        ++card[c[i]];
+    }
+
+    //obtain the mean vector by diving all its singular values by the amount of vectors in the cluster
+    for (unsigned i = 0; i < k; ++i)
+        for (unsigned j = 0; j < dim; ++j)
+            means[i * dim + j] /= card[i];
+}
+
+/*
+** Initialised means, card and c array
+** c: contains the cluster assignated to each vector in data
+** means: mean vector of each clusted
+** card: vector contained in a cluster
+** error: array containing last registered error rate for every vector
+** mark: array containing vectors that should be visited during iterations
+*/
+static void kmeans_init(float *means, unsigned *card, unsigned char *c, double *error, unsigned char *mark,
+    float *data, unsigned nb_vec, unsigned dim, unsigned char k)
+{
+    for (unsigned i = 0; i < nb_vec; ++i)
+    {
+        // Random init of c
+        c[i] = rand() / (RAND_MAX + 1.) * k;
+        error[i] = DBL_MAX;
+        mark[i] = 1;
+    }
+    compute_means_card(data, means, card, c, nb_vec, dim, k);
+    printf("[KMEANS] done initialising structures\n");
+}
+
+/*
+** data: the floats contained in the file
+** nb_vec: the amount of vectors to be found in the file
+** dim: size of a vector
+** k: amount of clusters
+** min_err: tolerated error step
+** max_iter: tolerated iteration step
+*/
 unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
-                      unsigned char K, double min_err, unsigned max_iter)
+                      unsigned char k)
 {
     unsigned iter = 0;
     double e = 0.;
     double diff_err = DBL_MAX;
     double err = DBL_MAX;
 
-    float *means = malloc(sizeof(float) * dim * K);
-    unsigned *card = malloc(sizeof(unsigned) * K);
+    float *means = malloc(sizeof(float) * dim * k);
+    unsigned *card = malloc(sizeof(unsigned) * k);
     unsigned char *c = malloc(sizeof(unsigned char) * nb_vec);
+    double *error = malloc(sizeof(double) * nb_vec);
+    unsigned char *mark = malloc(sizeof(unsigned char) * nb_vec);
 
-    // Random init of c
-    for(unsigned i = 0; i < nb_vec; ++i)
-        c[i] = rand() / (RAND_MAX + 1.) * K;
+    kmeans_init(means, card, c, error, mark, data,nb_vec, dim, k);
 
-    for(unsigned i = 0; i < dim * K; ++i)
-        means[i] = 0.;
-
-    for(unsigned i = 0; i < K; ++i)
-        card[i] = 0.;
-
-    for(unsigned i = 0; i < nb_vec; ++i) 
-    {
-        for(unsigned j = 0; j < dim; ++j)
-            means[c[i] * dim + j] += data[i * dim  + j];
-        ++card[c[i]];
-    }
-
-    for(unsigned i = 0; i < K; ++i)
-        for(unsigned j = 0; j < dim; ++j)
-            means[i * dim + j] /= card[i];
-
-    while ((iter < max_iter) && (diff_err > min_err)) 
+    //as long as we dont reach the maximum iteration number, or we are not satistied by our results..
+    while ((iter < MAX_ITER) && (diff_err > MIN_ERR)) 
     {
         double t1 = omp_get_wtime();
         diff_err = err;
         // Classify data
         err = 0.;
-        for(unsigned i = 0; i < nb_vec; ++i) 
+        for (unsigned i = 0; i < nb_vec; ++i) 
         {
-            c[i] = classify(data + i * dim, means, dim, K, &e);
-            err += e;
+            if (mark[i])
+            {
+                //assign a (new) cluster to all vectors
+                c[i] = classify(data + i * dim, means, dim, k, &e);
+                if (error[i] - e < TOLERATED_ERROR_THRESHOLD)
+                {
+                    mark[i] = 0;
+                }
+                error[i] = e;
+            }
+            //sum up the errors
+            //TODO: better error calculation
+            err += error[i];
         }
-
-        // update Mean
-        for(unsigned i = 0; i < dim * K; ++i)
-            means[i] = 0.;
-
-        for(unsigned i = 0; i < K; ++i)
-            card[i] = 0.;
-
-        for(unsigned i = 0; i < nb_vec; ++i) 
-        {
-            for(unsigned j = 0; j < dim; ++j)
-                means[c[i] * dim + j] += data[i * dim  + j];
-            ++card[c[i]];
-        }
-        for(unsigned i = 0; i < K; ++i)
-            for(unsigned j = 0; j < dim; ++j)
-                means[i * dim + j] /= card[i];
+        
+        //update means
+        compute_means_card(data, means, card, c, nb_vec, dim, k);
 
         ++iter;
+        //obtain the mean error
         err /= nb_vec;
         double t2 = omp_get_wtime();
         diff_err = fabs(diff_err - err);
 
-        print_result(iter, t2 - t1, err);
+        print_result(iter, t2 - t1, diff_err);
     }
 
     free(means);
@@ -173,21 +223,19 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
 
 int main(int ac, char *av[])
 {
-    if (ac != 8)
-        errx(1, "Usage :\n\t%s <K: int> <maxIter: int> <minErr: float> <dim: int> <nbvec:int> <datafile> <outputClassFile>\n", av[0]);
+    if (ac != 6)
+        errx(1, "[KMEANS] Usage :\n\t%s <K: int>  <dim: int> <nbvec:int> <datafile> <outputClassFile>\n", av[0]);
 
-    unsigned max_iter = atoi(av[2]);
-    double min_err = atof(av[3]);
     unsigned k = atoi(av[1]);
-    unsigned dim = atoi(av[4]);
-    unsigned nb_vec = atoi(av[5]);
+    unsigned dim = atoi(av[2]);
+    unsigned nb_vec = atoi(av[3]);
 
-    printf("Start kmeans on %s datafile [K = %d, dim = %d, nbVec = %d]\n", av[6], k, dim, nb_vec);
+    printf("[KMEANS] Start kmeans on %s datafile [K = %d, dim = %d, nbVec = %d]\n", av[4], k, dim, nb_vec);
 
-    float *tab = load_data(av[6], nb_vec, dim);
-    unsigned char * classif = kmeans(tab, nb_vec, dim, k, min_err, max_iter);
+    float *tab = load_data(av[4], nb_vec, dim);
+    unsigned char * classif = kmeans(tab, nb_vec, dim, k);
 
-    write_class_in_float_format(classif, nb_vec, av[7]);
+    write_class_in_float_format(classif, nb_vec, av[5]);
 
     munmap(tab, nb_vec * dim * sizeof(float));
     free(classif);
