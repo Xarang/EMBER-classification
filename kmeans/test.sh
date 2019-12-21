@@ -14,7 +14,7 @@ KMEANS_OUTPUT_FILE="$OUTPUT_SUB_DIR/kmeans.out"
 ACCURACY_OUTPUT_FILE="$OUTPUT_SUB_DIR/accuracy.out"
 
 make
-./kmeans 3 2351 900000 ../ember/Xtrain.dat out.dat 1>"$KMEANS_OUTPUT_FILE"
+./kmeans 3 20 1.0 2351 900000 ../ember/Xtrain.dat out.dat 1>"$KMEANS_OUTPUT_FILE"
 
 echo "[KMEANS] outputted kmeans logs in $KMEANS_OUTPUT_FILE"
 

@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS= -Wall -Wextra -Werror -std=c99 -pedantic -O3 -g
-LDFLAGS= -fopenmp -lm
+CFLAGS= -Wall -Wextra -Werror -std=c99 -pedantic -O3 -fopenmp -g
+LDFLAGS= -lm
 
 BIN=kmeans
 OBJ=kmeans.o

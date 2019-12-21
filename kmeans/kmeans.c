@@ -3,15 +3,13 @@
 #include <float.h>
 #include <limits.h>
 #include <math.h>
+#include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <omp.h>
 #include <unistd.h>
-
-#define MIN_ERR 1.0
-#define MAX_ITER 20.0
 
 #define TOLERATED_ERROR_THRESHOLD 50.0 //? sort this out
 
@@ -65,11 +63,14 @@ void write_class_in_float_format(unsigned char *data,
 double distance(float *vec1, float *vec2, unsigned dim) 
 {
     double dist = 0;
-    for (unsigned i = 0; i < dim; ++i, ++vec1, ++vec2) 
+    #pragma omp parallel for reduction (+:dist)
+    for (unsigned i = 0; i < dim; ++i) 
     {
-        double d = *vec1 - *vec2;
+        double d = vec1[i] - vec2[i];
         dist += d * d;
     }
+
+    //warnx("%d: distance: %f", omp_get_num_threads(), dist);
     return sqrt(dist);
 }
 
@@ -108,14 +109,12 @@ static inline void print_result(int iter, double time, float err)
 
 void compute_means_card(float *data, float *means, unsigned *card, unsigned char *c, unsigned nb_vec, unsigned dim, unsigned k)
 {
-  //initialise all means to 0
-    for (unsigned i = 0; i < dim * k; ++i)
-        means[i] = 0.;
+    //initialise all means to 0
+    memset(means, 0, dim * k * sizeof(float));
     //initialise all cards to 0
-    for (unsigned i = 0; i < k; ++i)
-        card[i] = 0.;
-
+    memset(card, 0, k * sizeof(unsigned));
     //for each vector in data
+    #pragma omp parallel for
     for (unsigned i = 0; i < nb_vec; ++i) 
     {
         //for each float in vector
@@ -144,6 +143,8 @@ void compute_means_card(float *data, float *means, unsigned *card, unsigned char
 static void kmeans_init(float *means, unsigned *card, unsigned char *c, double *error, unsigned char *mark,
     float *data, unsigned nb_vec, unsigned dim, unsigned char k)
 {
+    double t_init = omp_get_wtime();
+    #pragma omp parallel for
     for (unsigned i = 0; i < nb_vec; ++i)
     {
         // Random init of c
@@ -152,7 +153,7 @@ static void kmeans_init(float *means, unsigned *card, unsigned char *c, double *
         mark[i] = 1;
     }
     compute_means_card(data, means, card, c, nb_vec, dim, k);
-    printf("[KMEANS] done initialising structures\n");
+    printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
 }
 
 /*
@@ -164,8 +165,10 @@ static void kmeans_init(float *means, unsigned *card, unsigned char *c, double *
 ** max_iter: tolerated iteration step
 */
 unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
-                      unsigned char k)
+                      unsigned char k, double min_err, unsigned max_iter)
 {
+    double t_start = omp_get_wtime();
+
     unsigned iter = 0;
     double e = 0.;
     double diff_err = DBL_MAX;
@@ -180,12 +183,13 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     kmeans_init(means, card, c, error, mark, data,nb_vec, dim, k);
 
     //as long as we dont reach the maximum iteration number, or we are not satistied by our results..
-    while ((iter < MAX_ITER) && (diff_err > MIN_ERR)) 
+    while ((iter < max_iter) && (diff_err > min_err))
     {
         double t1 = omp_get_wtime();
         diff_err = err;
         // Classify data
         err = 0.;
+        #pragma omp parallel for reduction(+: err)
         for (unsigned i = 0; i < nb_vec; ++i) 
         {
             if (mark[i])
@@ -218,24 +222,26 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     free(means);
     free(card);
 
+    printf("[KMEANS] completed in %f sec\n", omp_get_wtime() - t_start);
     return c;
 }
 
 int main(int ac, char *av[])
 {
-    if (ac != 6)
-        errx(1, "[KMEANS] Usage :\n\t%s <K: int>  <dim: int> <nbvec:int> <datafile> <outputClassFile>\n", av[0]);
-
+    if (ac != 8)
+        errx(1, "Usage :\n\t%s <K: int> <maxIter: int> <minErr: float> <dim: int> <nbvec:int> <datafile> <outputClassFile>\n", av[0]);
     unsigned k = atoi(av[1]);
-    unsigned dim = atoi(av[2]);
-    unsigned nb_vec = atoi(av[3]);
+    unsigned max_iter = atoi(av[2]);
+    double min_err = atof(av[3]);
+    unsigned dim = atoi(av[4]);
+    unsigned nb_vec = atoi(av[5]);
 
     printf("[KMEANS] Start kmeans on %s datafile [K = %d, dim = %d, nbVec = %d]\n", av[4], k, dim, nb_vec);
 
-    float *tab = load_data(av[4], nb_vec, dim);
-    unsigned char * classif = kmeans(tab, nb_vec, dim, k);
+    float *tab = load_data(av[6], nb_vec, dim);
+    unsigned char * classif = kmeans(tab, nb_vec, dim, k, min_err, max_iter);
 
-    write_class_in_float_format(classif, nb_vec, av[5]);
+    write_class_in_float_format(classif, nb_vec, av[7]);
 
     munmap(tab, nb_vec * dim * sizeof(float));
     free(classif);
