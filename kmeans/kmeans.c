@@ -1,60 +1,12 @@
-#include <err.h>
-#include <fcntl.h>
-#include <float.h>
-#include <limits.h>
-#include <math.h>
-#include <memory.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
+#include "kmeans.h"
+
 #include <omp.h>
-#include <unistd.h>
+#include <immintrin.h>
+
+#pragma GCC target("avx")
 
 #define TOLERATED_ERROR_THRESHOLD 50.0 //? sort this out
 
-/*
-** map file `filename` into memory
-*/
-
-float *load_data(char *filename, unsigned nb_vec, unsigned dim)
-{
-    int fd = open(filename, O_RDONLY);
-    if (fd == -1)
-        err(1, "Error while opening %s", filename);
-
-    struct stat st;
-    if (fstat(fd, &st) != -1 && nb_vec * dim * sizeof(float) > (size_t) st.st_size)
-        errx(1, "Error in parameters");
-
-    void *tab = mmap(NULL, nb_vec * dim * sizeof(float), PROT_READ,
-                     MAP_SHARED, fd, 0);
-    if (tab == MAP_FAILED)
-        err(1, "Error while mmaping `%s`", filename);
-    close(fd);
-
-    return tab;
-}
-
-
-/*
-** writes `data` buffer into file `filename`
-*/
-void write_class_in_float_format(unsigned char *data,
-        unsigned nb_elt, char *filename) 
-{
-    FILE *fp = fopen(filename, "w");
-    if (!fp)
-        err(1, "Cannot create file: `%s`\n", filename);
-
-    for(unsigned i = 0; i < nb_elt; ++i) 
-    {
-        float f = data[i];
-        fwrite(&f, sizeof(float), 1, fp);
-    }
-
-    fclose(fp);
-}
 
 /*
 ** euclidian distance between 2 vectors of dimension dim
@@ -63,15 +15,53 @@ void write_class_in_float_format(unsigned char *data,
 double distance(float *vec1, float *vec2, unsigned dim) 
 {
     double dist = 0;
-    #pragma omp parallel for reduction (+:dist)
-    for (unsigned i = 0; i < dim; ++i) 
+    //unsigned vector_size = 8;
+    #pragma omp parallel for reduction (+: dist)
+    for (unsigned i = 0; i < dim/* / vector_size*/; i++)
     {
-        double d = vec1[i] - vec2[i];
-        dist += d * d;
+        #if 0
+        //vectorization of double d = vec[i] - vec2[i]
+        unsigned base_index = i * vector_size;
+        __m256 arr1 = _mm256_setr_ps(vec1[base_index + 0],
+                                    vec2[base_index + 0],
+                                    vec1[base_index + 1],
+                                    vec2[base_index + 1],
+                                    vec1[base_index + 2],
+                                    vec2[base_index + 2],
+                                    vec1[base_index + 3],
+                                    vec2[base_index + 3]);
+        __m256 arr2 = _mm256_setr_ps(vec1[base_index + 4],
+                                    vec2[base_index + 4],
+                                    vec1[base_index + 5],
+                                    vec2[base_index + 5],
+                                    vec1[base_index + 6],
+                                    vec2[base_index + 6],
+                                    vec1[base_index + 7],
+                                    vec2[base_index + 7]);
+        
+        __m256 sub_arr = _mm256_hsub_ps(arr1, arr2);
+        __m256 mul_arr = _mm256_mul_ps(sub_arr, sub_arr);
+        /*for (unsigned j = 0; j < vector_size; j++)
+        {
+            warnx("1[%u]: %f || 2[%u]: %f || sub[%u]: %f",
+                j, vec1[i * vectorss_size + j], j, vec2[i * vector_size + j], j, sub_arr[j]);
+        }*/
+        double sum = mul_arr[0]
+            +   mul_arr[1]
+            +   mul_arr[2]
+            +   mul_arr[3]
+            +   mul_arr[4]
+            +   mul_arr[5]
+            +   mul_arr[6]
+            +   mul_arr[7];
+        #endif
+        double sum = vec1[i] - vec2[i];
+        sum *= sum;
+        dist += sum;
     }
 
-    //warnx("%d: distance: %f", omp_get_num_threads(), dist);
-    return sqrt(dist);
+    double sq = sqrt(dist);
+    return sq;
 }
 
 /*
@@ -90,6 +80,8 @@ unsigned char classify(float *vec, float *means, unsigned dim,
     //calls distance k times
     for (unsigned i = 0; i < k; ++i) 
     {
+        //TODO: distance needs to be called less times (so that all sqrts are handled at once)
+        //->go back to lookup table idea ?
         dist = distance(vec, means + i * dim, dim);
         if (dist < dist_min) 
         {
@@ -235,13 +227,15 @@ int main(int ac, char *av[])
     double min_err = atof(av[3]);
     unsigned dim = atoi(av[4]);
     unsigned nb_vec = atoi(av[5]);
+    char *datafilename = av[6];
+    char *outputfile = av[7];
 
-    printf("[KMEANS] Start kmeans on %s datafile [K = %d, dim = %d, nbVec = %d]\n", av[4], k, dim, nb_vec);
+    printf("[KMEANS] Start kmeans on %s datafile [K = %d, dim = %d, nbVec = %d]\n", datafilename, k, dim, nb_vec);
 
-    float *tab = load_data(av[6], nb_vec, dim);
+    float *tab = load_data(datafilename, nb_vec, dim);
     unsigned char * classif = kmeans(tab, nb_vec, dim, k, min_err, max_iter);
 
-    write_class_in_float_format(classif, nb_vec, av[7]);
+    write_class_in_float_format(classif, nb_vec, outputfile);
 
     munmap(tab, nb_vec * dim * sizeof(float));
     free(classif);
