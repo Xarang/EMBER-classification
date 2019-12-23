@@ -36,7 +36,8 @@ void write_class_in_float_format(unsigned char *data,
 
     for(unsigned i = 0; i < nb_elt; ++i) 
     {
-        float f = data[i];
+        // from [0, 1, 2] to [-1, 0, 1]
+        float f = data[i] - 1;
         fwrite(&f, sizeof(float), 1, fp);
     }
 

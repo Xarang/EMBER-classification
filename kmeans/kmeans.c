@@ -8,6 +8,39 @@
 #define TOLERATED_ERROR_THRESHOLD 50.0 //? sort this out
 
 
+
+/*
+** Initialised means, card and c array
+** c: contains the cluster assignated to each vector in data
+** means: mean vector of each clusted
+** card: vector contained in a cluster
+** error: array containing last registered error rate for every vector
+** mark: array containing vectors that should be visited during iterations
+*/
+
+struct kmeans_params
+{
+    float *data;
+    unsigned char *c;
+
+    //data informations
+    unsigned vec_dim;
+    unsigned nb_vec;
+    unsigned k;
+
+    //computation arrays
+    unsigned *card;
+    unsigned *card_init;
+    float *means;
+    float *means_init;
+    double *error;
+
+    unsigned char *mark;
+
+    double tolerated_error_threshold;
+};
+
+
 double distance_computation_occurences = 0;
 
 /*
@@ -47,16 +80,15 @@ inline double distance(float *vec1, float *vec2, unsigned dim)
 ** (`ideally` each vectors should be exactly alligned on their cluster,
 ** any difference is computed as error)
 */
-inline unsigned char classify(float *vec, float *means, unsigned dim,
-                       unsigned char k, double *e) 
+inline unsigned char classify(float *vec, double *error, struct kmeans_params *p) 
 {
     unsigned char min = 0;
     float dist, dist_min = FLT_MAX;
 
     //calls distance k times
-    for (unsigned i = 0; i < k; ++i) 
+    for (unsigned i = 0; i < p->k; ++i) 
     {
-        dist = distance(vec, means + i * dim, dim);
+        dist = distance(vec, p->means + i * p->vec_dim, p->vec_dim);
         if (dist < dist_min) 
         {
             dist_min = dist;
@@ -64,7 +96,7 @@ inline unsigned char classify(float *vec, float *means, unsigned dim,
         }
     }
 
-    *e = dist_min;
+    *error = dist_min;
     return min;
 }
 
@@ -74,58 +106,81 @@ static inline void print_result(int iter, double time, float err, double distanc
                 iter, time, err, distance_occurences);
 }
 
-void compute_means_card(float *data, float *means, unsigned *card, unsigned char *c, unsigned nb_vec, unsigned dim, unsigned k)
+static inline void compute_means_card(struct kmeans_params *p)
 {
     //initialise all means to 0
-    memset(means, 0, dim * k * sizeof(float));
+    memset(p->means, 0, p->vec_dim * p->k * sizeof(float));
     //initialise all cards to 0
-    memset(card, 0, k * sizeof(unsigned));
+    memset(p->card, 0, p->k * sizeof(unsigned));
     //for each vector in data
     #pragma omp parallel for
-    for (unsigned i = 0; i < nb_vec; ++i) 
+    for (unsigned i = 0; i < p->nb_vec; ++i) 
     {
         //for each float in vector
         //#pragma omp parallel for
-        for (unsigned j = 0; j < dim; ++j)
+        for (unsigned j = 0; j < p->vec_dim; ++j)
         {
             //add the values of the vector to the mean of the cluster that contains this vector
-            means[c[i] * dim + j] += data[i * dim  + j];
+            p->means[p->c[i] * p->vec_dim + j] += p->data[i * p->vec_dim  + j];
         }
-        ++card[c[i]];
+        p->card[p->c[i]] += 1;
     }
 
     //obtain the mean vector by diving all its singular values by the amount of vectors in the cluster
-    for (unsigned i = 0; i < k; ++i)
+    for (unsigned i = 0; i < p->k; ++i)
     {
         //#pragma omp parallel for
-        for (unsigned j = 0; j < dim; ++j)
-            means[i * dim + j] /= card[i];
+        for (unsigned j = 0; j < p->vec_dim; ++j)
+            p->means[i * p->vec_dim + j] /= p->card[i];
     }
 }
 
-/*
-** Initialised means, card and c array
-** c: contains the cluster assignated to each vector in data
-** means: mean vector of each clusted
-** card: vector contained in a cluster
-** error: array containing last registered error rate for every vector
-** mark: array containing vectors that should be visited during iterations
-*/
-static void kmeans_init(float *means, unsigned *card, unsigned char *c, double *error, unsigned char *mark,
-    float *data, unsigned nb_vec, unsigned dim, unsigned char k)
+
+struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k)
 {
     double t_init = omp_get_wtime();
-    #pragma omp parallel for
+
+    struct kmeans_params *params = malloc(sizeof(struct kmeans_params));
+    params->data = data;
+    params->vec_dim = vec_dim;
+    params->nb_vec = nb_vec;
+    params->k = k;
+    params->means = calloc(sizeof(float), vec_dim * k);
+    params->means_init = calloc(sizeof(float), vec_dim * k);
+    params->card = calloc(sizeof(unsigned), k);
+    params->card_init = calloc(sizeof(unsigned), k);
+    params->error = calloc(sizeof(double), nb_vec);
+    params->mark = calloc(sizeof(unsigned char), nb_vec);
+    params->c = calloc(sizeof(char), nb_vec);
+
+    params->tolerated_error_threshold = 50.0;
+
+    //#pragma omp parallel for
     for (unsigned i = 0; i < nb_vec; ++i)
     {
         // Random init of c
-        c[i] = rand() / (RAND_MAX + 1.) * k;
-        error[i] = DBL_MAX;
-        mark[i] = 1;
+        // we use range [0, 1, 2] to facilitate indexing
+        params->c[i] = (rand() % k);
+        //warnx("%d", params->c[i]);
+        params->error[i] = DBL_MAX;
+        params->mark[i] = 1;
     }
-    compute_means_card(data, means, card, c, nb_vec, dim, k);
+    compute_means_card(params);
     printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
+    return params;
 }
+
+void kmeans_params_free(struct kmeans_params *p)
+{
+    free(p->means);
+    free(p->means_init);
+    free(p->card);
+    free(p->card_init);
+    free(p->error);
+    free(p->mark);
+    free(p);
+}
+
 
 /*
 ** data: the floats contained in the file
@@ -146,46 +201,42 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     double diff_err = DBL_MAX;
     double err = DBL_MAX;
 
-    float *means = malloc(sizeof(float) * dim * k);
-    unsigned *card = malloc(sizeof(unsigned) * k);
-    unsigned char *c = malloc(sizeof(unsigned char) * nb_vec);
-    double *error = malloc(sizeof(double) * nb_vec);
-    unsigned char *mark = malloc(sizeof(unsigned char) * nb_vec);
 
-    kmeans_init(means, card, c, error, mark, data,nb_vec, dim, k);
-
+    struct kmeans_params *p = kmeans_params_init(data, dim, nb_vec, k);
     //as long as we dont reach the maximum iteration number, or we are not satistied by our results..
     while ((iter < max_iter) && (diff_err > min_err))
     {
         double occ1 = distance_computation_occurences;
         double t1 = omp_get_wtime();
         diff_err = err;
-        // Classify data
+        // Classify dataTOLERATED_ERROR_THRESHOLD
         err = 0.;
         #pragma omp parallel for reduction(+: err)
         for (unsigned i = 0; i < nb_vec; ++i) 
         {
-            if (mark[i])
+            if (p->mark[i])
             {
                 //assign a (new) cluster to all vectors
-                c[i] = classify(data + i * dim, means, dim, k, &e);
-                if (error[i] - e < TOLERATED_ERROR_THRESHOLD)
+                p->c[i] = classify(data + i * dim, &err, p);
+                if (p->error[i] - e < p->tolerated_error_threshold)
                 {
-                    mark[i] = 0;
+                    p->mark[i] = 0;
                 }
-                error[i] = e;
+                p->error[i] = e;
             }
             //sum up the errors
             //TODO: better error calculation
-            err += error[i];
+            err += p->error[i];
         }
         
-        printf("Iteration: %d. done classification in %f\n", iter, omp_get_wtime() - t1);
+        double t_classification = omp_get_wtime();
+        printf("Iteration: %d. done classification in %f\n", iter, t_classification - t1);
 
         //update means
-        compute_means_card(data, means, card, c, nb_vec, dim, k);
+        compute_means_card(p);
 
-        printf("Iteration: %d. done mean card computation in %f\n", iter, omp_get_wtime() - t1);
+        double t_mean_card_computation = omp_get_wtime();
+        printf("Iteration: %d. done mean card computation in %f\n", iter, t_mean_card_computation - t_classification);
 
         ++iter;
         //obtain the mean error
@@ -195,12 +246,11 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
 
         print_result(iter, t2 - t1, diff_err, distance_computation_occurences - occ1);
     }
-
-    free(means);
-    free(card);
+    unsigned char *result = p->c;
+    kmeans_params_free(p);
 
     printf("[KMEANS] completed in %f sec\n", omp_get_wtime() - t_start);
-    return c;
+    return result;  
 }
 
 int main(int ac, char *av[])
