@@ -3,3 +3,5 @@ kmeans/output/*
 python/env/*
 *.swp
 *.png
+*.vscode
+*.o

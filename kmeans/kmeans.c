@@ -8,58 +8,34 @@
 #define TOLERATED_ERROR_THRESHOLD 50.0 //? sort this out
 
 
+double distance_computation_occurences = 0;
+
 /*
 ** euclidian distance between 2 vectors of dimension dim
 ** use case: vec1 -> some vector; vec2 -> mean vector of cluster k
 */
-double distance(float *vec1, float *vec2, unsigned dim) 
+inline double distance(float *vec1, float *vec2, unsigned dim) 
 {
+    distance_computation_occurences++;
     double dist = 0;
-    //unsigned vector_size = 8;
+    unsigned vector_size = 8;
+    __m256i index = _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7);
     #pragma omp parallel for reduction (+: dist)
-    for (unsigned i = 0; i < dim/* / vector_size*/; i++)
+    for (unsigned i = 0; i < dim / vector_size; i++)
     {
-        #if 0
         //vectorization of double d = vec[i] - vec2[i]
         unsigned base_index = i * vector_size;
-        __m256 arr1 = _mm256_setr_ps(vec1[base_index + 0],
-                                    vec2[base_index + 0],
-                                    vec1[base_index + 1],
-                                    vec2[base_index + 1],
-                                    vec1[base_index + 2],
-                                    vec2[base_index + 2],
-                                    vec1[base_index + 3],
-                                    vec2[base_index + 3]);
-        __m256 arr2 = _mm256_setr_ps(vec1[base_index + 4],
-                                    vec2[base_index + 4],
-                                    vec1[base_index + 5],
-                                    vec2[base_index + 5],
-                                    vec1[base_index + 6],
-                                    vec2[base_index + 6],
-                                    vec1[base_index + 7],
-                                    vec2[base_index + 7]);
+        __m256 arr1 = _mm256_i32gather_ps(vec1 + base_index, index, sizeof(float));
+        __m256 arr2 = _mm256_i32gather_ps(vec2 + base_index, index, sizeof(float));
         
-        __m256 sub_arr = _mm256_hsub_ps(arr1, arr2);
+        __m256 sub_arr = _mm256_sub_ps(arr1, arr2);
         __m256 mul_arr = _mm256_mul_ps(sub_arr, sub_arr);
-        /*for (unsigned j = 0; j < vector_size; j++)
-        {
-            warnx("1[%u]: %f || 2[%u]: %f || sub[%u]: %f",
-                j, vec1[i * vectorss_size + j], j, vec2[i * vector_size + j], j, sub_arr[j]);
-        }*/
-        double sum = mul_arr[0]
-            +   mul_arr[1]
-            +   mul_arr[2]
-            +   mul_arr[3]
-            +   mul_arr[4]
-            +   mul_arr[5]
-            +   mul_arr[6]
-            +   mul_arr[7];
-        #endif
-        double sum = vec1[i] - vec2[i];
-        sum *= sum;
+        double sum = mul_arr[0] + mul_arr[1]
+            +   mul_arr[2] + mul_arr[3]
+            +   mul_arr[4] + mul_arr[5]
+            +   mul_arr[6] + mul_arr[7];
         dist += sum;
     }
-
     double sq = sqrt(dist);
     return sq;
 }
@@ -71,7 +47,7 @@ double distance(float *vec1, float *vec2, unsigned dim)
 ** (`ideally` each vectors should be exactly alligned on their cluster,
 ** any difference is computed as error)
 */
-unsigned char classify(float *vec, float *means, unsigned dim,
+inline unsigned char classify(float *vec, float *means, unsigned dim,
                        unsigned char k, double *e) 
 {
     unsigned char min = 0;
@@ -80,8 +56,6 @@ unsigned char classify(float *vec, float *means, unsigned dim,
     //calls distance k times
     for (unsigned i = 0; i < k; ++i) 
     {
-        //TODO: distance needs to be called less times (so that all sqrts are handled at once)
-        //->go back to lookup table idea ?
         dist = distance(vec, means + i * dim, dim);
         if (dist < dist_min) 
         {
@@ -94,9 +68,10 @@ unsigned char classify(float *vec, float *means, unsigned dim,
     return min;
 }
 
-static inline void print_result(int iter, double time, float err)
+static inline void print_result(int iter, double time, float err, double distance_occurences)
 {
-        printf("[KMEANS] Iteration: %d, Time: %lf, error_diff: %f\n", iter, time, err);
+        printf("[KMEANS] Iteration: %d, Time: %lf, error_diff: %f, distance computed %f times\n",
+                iter, time, err, distance_occurences);
 }
 
 void compute_means_card(float *data, float *means, unsigned *card, unsigned char *c, unsigned nb_vec, unsigned dim, unsigned k)
@@ -110,6 +85,7 @@ void compute_means_card(float *data, float *means, unsigned *card, unsigned char
     for (unsigned i = 0; i < nb_vec; ++i) 
     {
         //for each float in vector
+        //#pragma omp parallel for
         for (unsigned j = 0; j < dim; ++j)
         {
             //add the values of the vector to the mean of the cluster that contains this vector
@@ -120,8 +96,11 @@ void compute_means_card(float *data, float *means, unsigned *card, unsigned char
 
     //obtain the mean vector by diving all its singular values by the amount of vectors in the cluster
     for (unsigned i = 0; i < k; ++i)
+    {
+        //#pragma omp parallel for
         for (unsigned j = 0; j < dim; ++j)
             means[i * dim + j] /= card[i];
+    }
 }
 
 /*
@@ -159,6 +138,7 @@ static void kmeans_init(float *means, unsigned *card, unsigned char *c, double *
 unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
                       unsigned char k, double min_err, unsigned max_iter)
 {
+    warnx("[KMEANS] entered program.");
     double t_start = omp_get_wtime();
 
     unsigned iter = 0;
@@ -177,6 +157,7 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     //as long as we dont reach the maximum iteration number, or we are not satistied by our results..
     while ((iter < max_iter) && (diff_err > min_err))
     {
+        double occ1 = distance_computation_occurences;
         double t1 = omp_get_wtime();
         diff_err = err;
         // Classify data
@@ -199,8 +180,12 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
             err += error[i];
         }
         
+        printf("Iteration: %d. done classification in %f\n", iter, omp_get_wtime() - t1);
+
         //update means
         compute_means_card(data, means, card, c, nb_vec, dim, k);
+
+        printf("Iteration: %d. done mean card computation in %f\n", iter, omp_get_wtime() - t1);
 
         ++iter;
         //obtain the mean error
@@ -208,7 +193,7 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
         double t2 = omp_get_wtime();
         diff_err = fabs(diff_err - err);
 
-        print_result(iter, t2 - t1, diff_err);
+        print_result(iter, t2 - t1, diff_err, distance_computation_occurences - occ1);
     }
 
     free(means);
