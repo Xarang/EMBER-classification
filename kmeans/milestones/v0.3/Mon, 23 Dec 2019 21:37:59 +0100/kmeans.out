@@ -1,0 +1,15 @@
+[KMEANS] Start kmeans on ../ember/Xtrain.dat datafile [K = 3, dim = 2351, nbVec = 900000]
+[KMEANS] structure initialisation done in 0.780197 sec
+Iteration: 0. done classification in 4.243255
+Iteration: 0. done mean card computation in 3.190505
+[KMEANS] Iteration: 1, Time: 7.433772, error_diff: inf, distance computed 2637682.000000 times
+Iteration: 1. done classification in 3.492576
+Iteration: 1. done mean card computation in 1.139889
+[KMEANS] Iteration: 2, Time: 4.632478, error_diff: 706.122009, distance computed 2632021.000000 times
+Iteration: 2. done classification in 0.010820
+Iteration: 2. done mean card computation in 3.473461
+[KMEANS] Iteration: 3, Time: 3.484295, error_diff: 951.851685, distance computed 0.000000 times
+Iteration: 3. done classification in 0.001467
+Iteration: 3. done mean card computation in 3.225883
+[KMEANS] Iteration: 4, Time: 3.227358, error_diff: 0.000000, distance computed 0.000000 times
+[KMEANS] completed in 19.558605 sec
