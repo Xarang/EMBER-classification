@@ -3,7 +3,7 @@ CFLAGS= -Wall -Wextra -Werror -std=c99 -pedantic -O3 -fopenmp -mavx2 -g
 LDFLAGS= -lm
 
 BIN=kmeans
-OBJ=kmeans.o utils.o
+OBJ=kmeans.o init.o utils.o
 
 all: $(BIN)
 
