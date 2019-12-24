@@ -34,12 +34,17 @@ void write_class_in_float_format(unsigned char *data,
     if (!fp)
         err(1, "Cannot create file: `%s`\n", filename);
 
-    for(unsigned i = 0; i < nb_elt; ++i) 
+    double counts[3] = { 0 };
+    for (unsigned i = 0; i < nb_elt; ++i) 
     {
         // from [0, 1, 2] to [-1, 0, 1]
-        float f = data[i] - 1;
+        counts[data[i]]++;
+        float f = data[i]/* - 1*/;
         fwrite(&f, sizeof(float), 1, fp);
     }
+    warnx("COUNT[0]: %f", counts[0]);
+    warnx("COUNT[1]: %f", counts[1]);
+    warnx("COUNT[2]: %f", counts[2]);
 
     fclose(fp);
 }

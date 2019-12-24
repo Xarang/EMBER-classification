@@ -2,8 +2,8 @@
 
 #include <immintrin.h>
 
-#define SUBSET_SIZE 256
-#define NB_CANDIDATES 32
+#define SUBSET_SIZE 1024
+#define NB_CANDIDATES 64
 
 unsigned *get_subset_indexes(unsigned nb_vec)
 {

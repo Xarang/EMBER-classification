@@ -5,7 +5,7 @@
 
 #pragma GCC target("avx")
 
-#define RANDOM_SEED 0
+#define RANDOM_SEED 512
 
 
 double distance_computation_occurences = 0;
@@ -123,22 +123,32 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
 
     //TODO: find out best variables to put there
     params->min_error_improvement_ratio_to_mark = 0.01;
-    params->min_closest_to_next_ratio_to_mark = 0.3;
+    params->min_closest_to_next_ratio_to_mark = 0.5;
 
     //#pragma omp parallel for
     for (unsigned i = 0; i < nb_vec; ++i)
     {
-        // Random init of c
         // we use range [0, 1, 2] to facilitate indexing
-        params->c[i] = rand() / (RAND_MAX + 1.) * k; //TODO: this should not be necessary anymore
+        params->c[i] = 0;
         //warnx("%d", params->c[i]);
         params->error[i] = DBL_MAX;
         params->mark[i] = 1;
     }
     unsigned *values = cluster_initial_vectors(params);
-    warnx("CENTROID1: %u", values[0]);
-    warnx("CENTROID2: %u", values[1]);
-    warnx("CENTROID3: %u", values[2]);
+    // set initial cluster values
+    for (size_t i = 0; i < k; i++)
+    {
+        for (size_t j = 0; j < vec_dim; j++)
+            params->means[i * vec_dim + j] = data[values[i] * vec_dim + j];
+    }
+    //check centroids infos
+    warnx("CENTROID0: %u", values[0]);
+    warnx("CENTROID1: %u", values[1]);
+    warnx("CENTROID2: %u", values[2]);
+    warnx("0 -> 1: %f", distance(params->data + values[0] * vec_dim, params->data + values[1] * vec_dim, vec_dim));
+    warnx("0 -> 2: %f", distance(params->data + values[0] * vec_dim, params->data + values[2] * vec_dim, vec_dim));
+    warnx("1 -> 2: %f", distance(params->data + values[1] * vec_dim, params->data + values[2] * vec_dim, vec_dim));
+    free(values);
     printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
     return params;
 }
@@ -170,14 +180,16 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     double t_start = omp_get_wtime();
 
     unsigned iter = 0;
+    unsigned min_iter = 3; // do at least 3 iterations
+
     double previous_iteration_error = DBL_MAX;
-    double error_improvement_ratio = 1.0;
-    min_err = 0.01; //minimum ratio of error diminution worth pursuing the algorithm
+    //double error_improvement_ratio = 1.0;
+    double error_improvement = DBL_MAX;
+    min_err = 10000.0; //minimum error diminution worth pursuing the algorithm
 
     struct kmeans_params *p = kmeans_params_init(data, dim, nb_vec, k);
-    compute_means_card(p);
     //as long as we dont reach the maximum iteration number, or we are not satistied by our results..
-    while ((iter < max_iter) && (error_improvement_ratio > min_err))
+    while ((iter < min_iter) || ((iter < max_iter) && (error_improvement > min_err)))
     {
         double occ1 = distance_computation_occurences;         // useful for debug printings
         double mark_occurences = 0;
@@ -193,7 +205,6 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
                 //assign a (new) cluster to all vectors
                 double vector_error;
                 unsigned char closest_cluster = classify(data + i * dim, &vector_error, distances, p);
-                //warnx("closest cluster: %d", closest_cluster);
                 p->c[i] = closest_cluster;
                 //warnx("%d", closest_cluster);
 
@@ -228,13 +239,14 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
         double t_mean_card_computation = omp_get_wtime();
         printf("Iteration: %d. done mean card computation in %f\n", iter, t_mean_card_computation - t_classification);
 
-        ++iter;
         //obtain the mean error
         double iteration_mean_error = iteration_total_error /= nb_vec;
         double t2 = omp_get_wtime();
-        error_improvement_ratio = (previous_iteration_error - iteration_mean_error) / previous_iteration_error;
+        error_improvement = fabs(previous_iteration_error - iteration_mean_error);
+        //error_improvement_ratio = error_improvement / previous_iteration_error;
         previous_iteration_error = iteration_mean_error;
-        print_result(iter, t2 - t1, error_improvement_ratio, distance_computation_occurences - occ1);
+        print_result(iter, t2 - t1, error_improvement, distance_computation_occurences - occ1);
+        iter++;
     }
     unsigned char *result = p->c;
     kmeans_params_free(p);

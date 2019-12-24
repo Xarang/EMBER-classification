@@ -1,4 +1,5 @@
 ember
+kmeans
 kmeans/output/*
 python/env/*
 *.swp
