@@ -4,6 +4,12 @@ import resource
 import numpy as np
 
 from sklearn import svm
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import IncrementalPCA
 
 from multiprocessing import Process
@@ -18,7 +24,7 @@ def chunks(array: np.array, chunk_size: int):
         yield array[i:i + chunk_size, :]
 
 
-def classifier(xdatfile, ydatfile):
+def classify(xdatfile, ydatfile, classifiers = [ ("LinearSVC", svm.LinearSVC()) ]):
 
     # CONSTS
     SET_SIZE = 900000 # total amonut of vectors in ember dataset
@@ -102,6 +108,10 @@ def classifier(xdatfile, ydatfile):
         print(confidence)
         return clf
 
+    # 0. start !
+
+    print("[CLASSIF] starting classification process.")
+
     # 1. mmap data
 
     training_data, validation_data, training_labels, validation_labels = get_data_sets(xdatfile, ydatfile)
@@ -119,22 +129,29 @@ def classifier(xdatfile, ydatfile):
     assert(len(training_labels) == len(training_data))
     assert(len(validation_labels) == len(validation_data))
 
-    # 4. Build classifier and train it with Training Set
-
-    clf = build_svm(training_data, training_labels)
-
-    # 5. Evaluate classifier with Validation Set
-
-    accuracy = clf.score(validation_data, validation_labels)
-    print("[CLASSIF] validated validation set with accuracy: {}. Time elapsed since start: {}".format(accuracy, time.time() - time_start))
-
+    for (name, classifier) in classifiers:
+        # 4. Build classifier and train it with Training Set
+        time_clf_start = time.time()
+        classifier.fit(training_data, training_labels)
+        print("[CLASSIF] trained classifier {} in {} sec.".format(name, time.time() - time_clf_start))
+        # 5. Evaluate classifier with Validation Set
+        accuracy = classifier.score(validation_data, validation_labels)
+        print("[CLASSIF] classifier {} classified validation set with accuracy: {} in {} sec.".format(name, accuracy, time.time() - time_clf_start))
 
 # run this in a separate thread
 
 xdatfile = sys.argv[1]
 ydatfile = sys.argv[2]
 
-run_classifier = Process(target=classifier, args=(xdatfile, ydatfile))
+classifiers = [
+    ("KNeighbors (neigh=5)", KNeighborsClassifier(5)),
+  #  ("Linear SVC", svm.LinearSVC()),
+  #  ("Gaussian Process Classifier", GaussianProcessClassifier(1.0 * RBF(1.0))),
+  #  ("AdaBoost", AdaBoostClassifier()),
+  #  ("Naive Bayes", GaussianNB())
+]
+
+run_classifier = Process(target=classify, args=(xdatfile, ydatfile, classifiers))
 
 run_classifier.start()
 run_classifier.join()
