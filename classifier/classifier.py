@@ -5,14 +5,11 @@ import numpy as np
 
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import IncrementalPCA
-
 from multiprocessing import Process
+
+import psutil
 
 import time
 
@@ -24,30 +21,19 @@ def chunks(array: np.array, chunk_size: int):
         yield array[i:i + chunk_size, :]
 
 
-def classify(xdatfile, ydatfile, classifiers = [ ("LinearSVC", svm.LinearSVC()) ]):
+def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsClassifier(5)) ]):
 
     # CONSTS
+
     SET_SIZE = 900000 # total amonut of vectors in ember dataset
     VECTOR_SIZE = 2351 # size (in float) of a single vector
-
     TRAINING_SET_SIZE = 800000 # amount of vectors in training set (subset of SET_SIZE)
     VALIDATION_SET_SIZE = 50000 # amount of vectors in validation set (subset of SET_SIZE)
-
-    PCA_TRAINING_SUBSET = 1000000
-
+    PCA_TRAINING_SUBSET = 1000000 # amount of vectors to generate our PCA with
     VECTOR_CHUNK_SIZE = 10000 # vectors to be transformed by tca at a time
-
     PCA_NB_COMPONENTS = 20
-    #######
 
-    # reshaped_data = np.reshape(data, (-1, 2351))
-    # sample = reshaped_data[np.random.randint(0, 900000, 100000),:]
-    # sample_indexes = np.random.randint(0, 900000, 100000)
-    # sample_x = reshaped_data[sample_indexes,:]
-    # sample_y = labels[sample_indexes]
-    # classified_indexes = sample_y != -1
-    # final_y = sample_y[classified_indexes]
-    # final_x = sample_x[classified_indexes]
+    #######
 
     def limit_memory(maxmemory):
         soft, hard = resource.getrlimit(resource.RLIMIT_AS)
@@ -140,18 +126,33 @@ def classify(xdatfile, ydatfile, classifiers = [ ("LinearSVC", svm.LinearSVC()) 
 
 # run this in a separate thread
 
-xdatfile = sys.argv[1]
-ydatfile = sys.argv[2]
+if __name__ == '__main__':
+    xdatfile = sys.argv[1]
+    ydatfile = sys.argv[2]
 
-classifiers = [
-    ("KNeighbors (neigh=5)", KNeighborsClassifier(5)),
-  #  ("Linear SVC", svm.LinearSVC()),
-  #  ("Gaussian Process Classifier", GaussianProcessClassifier(1.0 * RBF(1.0))),
-  #  ("AdaBoost", AdaBoostClassifier()),
-  #  ("Naive Bayes", GaussianNB())
-]
+    classifiers = [
+        ("KNeighbors (neigh=5)", KNeighborsClassifier(5)),
+        ("Linear SVC", svm.LinearSVC()),
+    ]
 
-run_classifier = Process(target=classify, args=(xdatfile, ydatfile, classifiers))
+    def get_resources_informations(report_id):
+        memory_infos = psutil.virtual_memory()
+        cpu_usage = psutil.cpu_percent()
+        memory_used = memory_infos.total - memory_infos.available
+        memory_used_gb = memory_used / 1024 / 1024 / 1024
+        memory_used_percentage = memory_used / memory_infos.total * 100
 
-run_classifier.start()
-run_classifier.join()
+        print("[RESOURCES] report #{}; Memory used: {:.2f} GB ({:.2f}%). CPU usage: {:.2f}%".format(report_id, memory_used_gb, memory_used_percentage, cpu_usage))
+
+    run_classifier = Process(target=classify, args=[xdatfile, ydatfile])
+
+    run_classifier.start()
+    report_id = 0
+    while run_classifier.is_alive():
+        run_memory_monitor = Process(target=get_resources_informations, args=[report_id])
+        run_memory_monitor.start()
+        report_id += 1
+        run_memory_monitor.join()
+        time.sleep(10)
+
+    run_classifier.join()
