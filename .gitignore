@@ -1,7 +1,7 @@
 ember
 kmeans
 kmeans/output/*
-python/env/*
+env/*
 *.swp
 *.png
 *.vscode
