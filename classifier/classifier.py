@@ -3,6 +3,9 @@ import numpy as np
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.decomposition import IncrementalPCA
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_recall_fscore_support
+
 from multiprocessing import Process
 
 import psutil
@@ -17,11 +20,13 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
 
     SET_SIZE = 900000 # total amonut of vectors in ember dataset
     VECTOR_SIZE = 2351 # size (in float) of a single vector
-    TRAINING_SET_SIZE = 800000 # amount of vectors in training set (subset of SET_SIZE)
+    TRAINING_SET_SIZE = 850000 # amount of vectors in training set (subset of SET_SIZE)
     VALIDATION_SET_SIZE = 50000 # amount of vectors in validation set (subset of SET_SIZE)
     PCA_TRAINING_SUBSET = 1000000 # amount of vectors to generate our PCA with
     VECTOR_CHUNK_SIZE = 10000 # vectors to be transformed by tca at a time
-    PCA_NB_COMPONENTS = 20
+    PCA_NB_COMPONENTS = 20 # nb of dimensions vectors to be reduced into
+
+    time_start_classify = time.time()
 
     #######
     def chunks(data: np.array, labels: np.array, chunk_size: int):
@@ -53,19 +58,23 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
 
         # subset of data to fit our pca on
         sample_indexes = np.random.choice(range(len(training_data)), 100000, replace=False)
+
         subset = training_data[sample_indexes]
         subset_indexes = training_labels[sample_indexes]
         subset, subset_indexes = remove_unlabelled_data(subset, subset_indexes)
-        pca = IncrementalPCA(n_components=PCA_NB_COMPONENTS, batch_size = 50)
+
+        pca = IncrementalPCA(n_components=PCA_NB_COMPONENTS, batch_size = 100)
         pca = pca.fit(subset)
         print("[CLASSIF] computed PCA on data subset. Time elapsed since start: {}".format(time.time() - time_start))
 
         # transform all validation data with the pca we just computed
+
         validation_data, validation_labels = remove_unlabelled_data(validation_data, validation_labels)
         new_validation_data = pca.transform(validation_data)
         new_validation_labels = validation_labels
         print("[CLASSIF] transformed our validation data using PCA. Time elapsed since start: {}".format(time.time() - time_start))
-        
+
+
         # We process our training data by smaller chunks to not overload RAM usage
 
         new_training_data = np.vstack([ \
@@ -78,7 +87,12 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
 
         return new_training_data, new_validation_data, new_training_labels, new_validation_labels
 
-
+    def evaluate(classifier, validation_data, validation_labels):
+        results = classifier.predict(validation_data)
+        conf_matrix = confusion_matrix(validation_labels, results, labels=[0, 1])
+        scores = precision_recall_fscore_support(validation_labels, results, average='macro', labels=[0, 1])
+        return scores, conf_matrix
+            
     # 0. start !
 
     print("[CLASSIF] starting classification process.")
@@ -106,8 +120,20 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
         classifier.fit(training_data, training_labels)
         print("[CLASSIF] trained classifier {} in {} sec.".format(name, time.time() - time_clf_start))
         # 5. Evaluate classifier with Validation Set
-        accuracy = classifier.score(validation_data, validation_labels)
-        print("[CLASSIF] classifier {} classified validation set with accuracy: {} in {} sec.".format(name, accuracy, time.time() - time_clf_start))
+       
+        scores, matrix, = evaluate(classifier, validation_data, validation_labels)
+
+        #accuracy = classifier.score(validation_data, validation_labels)
+        print("[CLASSIF] classifier {} classified validation  {} sec.".format(name, time.time() - time_clf_start))
+        print("[CLASSIF] confusion matrix:")
+        print(matrix)
+        print("[CLASSIF] scores:")
+        print("[CLASSIF] precision: ------------ {:.2f} / 1.0".format(scores[0]))
+        print("[CLASSIF] recall: --------------- {:.2f} / 1.0".format(scores[1]))
+        print("[CLASSIF] F-beta score: --------- {:.2f} / 1.0".format(scores[2]))
+
+    print("[CLASSIF] exiting program after {:.2f} seconds".format(time.time() - time_start_classify))
+
 
 # run this in a separate thread
 
