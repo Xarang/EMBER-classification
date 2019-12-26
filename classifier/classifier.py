@@ -1,11 +1,8 @@
 import sys
-import struct
 import resource
 import numpy as np
 
-from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import IncrementalPCA
 from multiprocessing import Process
 
@@ -85,15 +82,6 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
         return new_training_data, new_validation_data
 
 
-    def build_svm(data, labels):
-        clf = svm.LinearSVC()
-        clf.fit(data, labels)
-        print("[CLASSIF] trained classifier. Time elapsed since start: {}".format(time.time() - time_start))
-        confidence = clf.decision_function(data)
-        print("[CLASSIF] confidence scores for samples:")
-        print(confidence)
-        return clf
-
     # 0. start !
 
     print("[CLASSIF] starting classification process.")
@@ -129,11 +117,6 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
 if __name__ == '__main__':
     xdatfile = sys.argv[1]
     ydatfile = sys.argv[2]
-
-    classifiers = [
-        ("KNeighbors (neigh=5)", KNeighborsClassifier(5)),
-        ("Linear SVC", svm.LinearSVC()),
-    ]
 
     def get_resources_informations(report_id):
         memory_infos = psutil.virtual_memory()
