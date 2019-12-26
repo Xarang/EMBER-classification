@@ -1,5 +1,4 @@
 import sys
-import resource
 import numpy as np
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -11,12 +10,6 @@ import psutil
 import time
 
 time_start = time.time()
-
-
-def chunks(array: np.array, chunk_size: int):
-    for i in range(0, len(array), chunk_size):
-        yield array[i:i + chunk_size, :]
-
 
 def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsClassifier(5)) ]):
 
@@ -31,10 +24,15 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
     PCA_NB_COMPONENTS = 20
 
     #######
+    def chunks(data: np.array, labels: np.array, chunk_size: int):
+        for i in range(0, len(data), chunk_size):
+            yield ( data[i:i + chunk_size, :], labels[i:i + chunk_size] )
 
-    def limit_memory(maxmemory):
-        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-        resource.setrlimit(resource.RLIMIT_AS, (maxmemory, hard))
+    def remove_unlabelled_data(data, labels):
+        labelled_indexes = labels != -1
+        data = data[labelled_indexes]
+        labels = labels[labelled_indexes]
+        return data, labels
 
     def get_data_sets(xfile, yfile):
 
@@ -48,38 +46,37 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
         validation_data   =   data[TRAINING_SET_SIZE + 1: TRAINING_SET_SIZE + VALIDATION_SET_SIZE + 1]
         validation_labels = labels[TRAINING_SET_SIZE + 1: TRAINING_SET_SIZE + VALIDATION_SET_SIZE + 1]
         
-        def remove_unlabelled_data(data, labels):
-            labelled_indexes = labels != -1
-            data = data[labelled_indexes]
-            labels = labels[labelled_indexes]
-            return data, labels
-
-        training_data, training_labels = remove_unlabelled_data(training_data, training_labels)
-        validation_data, validation_labels = remove_unlabelled_data(validation_data, validation_labels)
-
         print("[CLASSIF] got data set. Time elapsed since start: {}".format(time.time() - time_start))
         return training_data, validation_data, training_labels, validation_labels
 
-    def data_pre_treatment(training_data, validation_data):
+    def data_pre_treatment(training_data, validation_data, training_labels, validation_labels):
 
-        #subset of data to fit our pca on
+        # subset of data to fit our pca on
         sample_indexes = np.random.choice(range(len(training_data)), 100000, replace=False)
         subset = training_data[sample_indexes]
-        
+        subset_indexes = training_labels[sample_indexes]
+        subset, subset_indexes = remove_unlabelled_data(subset, subset_indexes)
         pca = IncrementalPCA(n_components=PCA_NB_COMPONENTS, batch_size = 50)
         pca = pca.fit(subset)
         print("[CLASSIF] computed PCA on data subset. Time elapsed since start: {}".format(time.time() - time_start))
+
+        # transform all validation data with the pca we just computed
+        validation_data, validation_labels = remove_unlabelled_data(validation_data, validation_labels)
         new_validation_data = pca.transform(validation_data)
+        new_validation_labels = validation_labels
         print("[CLASSIF] transformed our validation data using PCA. Time elapsed since start: {}".format(time.time() - time_start))
         
         # We process our training data by smaller chunks to not overload RAM usage
 
-
-        new_training_data = np.vstack([pca.transform(chunk) for chunk in chunks(training_data, VECTOR_CHUNK_SIZE)])
-
+        new_training_data = np.vstack([ \
+                pca.transform(remove_unlabelled_data(chunk_tuple[0], chunk_tuple[1])[0]) \
+                for chunk_tuple in chunks(training_data, training_labels, VECTOR_CHUNK_SIZE) \
+                ])
+        new_training_labels = training_labels[training_labels != -1]
         print("[CLASSIF] Transformed datasets using PCA. Training Data: {} vectors; Validation Data: {} vectors".format(len(new_training_data), len(new_validation_data)))
         print("[CLASSIF] Time elapsed since start: {}".format(time.time() - time_start))
-        return new_training_data, new_validation_data
+
+        return new_training_data, new_validation_data, new_training_labels, new_validation_labels
 
 
     # 0. start !
@@ -92,7 +89,7 @@ def classify(xdatfile, ydatfile, classifiers = [ ("KNeighboors(5)", KNeighborsCl
 
     # 2. pre process data
 
-    training_data, validation_data = data_pre_treatment(training_data, validation_data)
+    training_data, validation_data, training_labels, validation_labels = data_pre_treatment(training_data, validation_data, training_labels, validation_labels)
 
     # 3. sanity check for results from pre processing
 
