@@ -1,7 +1,8 @@
-## @package File classifier
-#
-# KMEAN classifier using sklearn
-#
+"""@package classifier
+
+KMEAN classifier using sklearn
+
+"""
 
 
 import sys
@@ -21,45 +22,51 @@ import time
 time_start = time.time()
 
 
-
-## Classify
-# Extracts data from xtrain, ytrain, xvalidation, yvalidations files,
-# then train a model on training data and evaluate it on validation data.
-# @param xtrain: training data
-# @param ytrain: training labels
-# @param xvalidation: validation data
-# @param yvalidation: validation labels
 def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighboors(5)", KNeighborsClassifier(5)) ]):
 
+    """
 
-    ## Constants
-    #
-    # @param VECTOR_SIZE: size (in float) of a single vector
-    # @param PCA_TRAINING_SUBSET: size (in vectors) of training subset
-    # @param VECTOR_CHUNK_SIZE: size (in vectors) of batches to be passed to PCA at a time
-    # @param PCA_NB_COMPONENTS: number of dimensions to reduce our vectors into
+    Extracts data from xtrain, ytrain, xvalidation, yvalidations files,
+    then train a model on training data and evaluate it on validation data.
 
-    VECTOR_SIZE = 2351 
-    PCA_TRAINING_SUBSET = 1000000
-    VECTOR_CHUNK_SIZE = 10000
-    PCA_NB_COMPONENTS = 20
+    xtrain: training data
+    ytrain: training labels
+    xvalidation: validation data
+    yvalidation: validation labels
+
+    """
+
+    # CONSTS
+
+    VECTOR_SIZE = 2351 # size (in float) of a single vector
+    PCA_TRAINING_SUBSET = 1000000 # amount of vectors to generate our PCA with
+    VECTOR_CHUNK_SIZE = 10000 # vectors to be transformed by tca at a time
+    PCA_NB_COMPONENTS = 20 # nb of dimensions vectors to be reduced into
+
     time_start_classify = time.time()
 
-    # Returns a generator that yields chunks of size 'chunk_size'
-    # from arrays data and labels
+    #######
     def chunks(data: np.array, labels: np.array, chunk_size: int):
+        """
+        Returns a generator that yields chunks of size 'chunk_size'
+        from arrays data and labels
+        """
         for i in range(0, len(data), chunk_size):
             yield ( data[i:i + chunk_size, :], labels[i:i + chunk_size] )
 
-    # Returns data and labels, stripped from their unlabelled data
     def remove_unlabelled_data(data, labels):
+        """
+        Returns data and labels, stripped from their unlabelled data
+        """
         labelled_indexes = labels != -1
         data = data[labelled_indexes]
         labels = labels[labelled_indexes]
         return data, labels
 
-    # Map all data into memory, reshape data arrays to matrixes of dimension (NB_VECTOR, VECTOR_SIZE)
     def get_data_sets(xtrain, ytrain, xvalidation, yvalidation):
+        """
+        Map all data into memory, reshape data arrays to matrixes of dimension (NB_VECTOR, VECTOR_SIZE)
+        """
         training_data = np.memmap(xtrain, dtype=np.float32, mode='c',1 order='C')
         training_labels = np.memmap(ytrain, dtype=np.float32, mode='c', order='C')
         validation_data = np.memmap(xvalidation, dtype=np.float32, mode='c', order='C')
@@ -71,17 +78,17 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
         print("[CLASSIF] got data set. Time elapsed since start: {}".format(time.time() - time_start))
         return training_data, validation_data, training_labels, validation_labels
 
-
-
-    ## Data pre treatment function. Main memory / CPU usage.
-    # Computes PCA for our training data, reducing the dimensions of our data vectors
-    # We chose arbitrarily PCA_NB_COMPONENTS as the amount of dimensions to scale our vector into.
-# 
-    # The PCA is computed by increments to avoid RAM overusage (increases computation time..)
-# 
-    # Returns all the data array passed as arguments, unlabelled data removed and PCA-reduced
     def data_pre_treatment(training_data, validation_data, training_labels, validation_labels):
-       
+        """
+        Data pre treatment function. Main memory / CPU usage.
+
+        Computes PCA for our training data, reducing the dimensions of our data vectors
+        We chose arbitrarily PCA_NB_COMPONENTS as the amount of dimensions to scale our vector into.
+
+        The PCA is computed by increments to avoid RAM overusage (increases computation time..)
+
+        Returns all the data array passed as arguments, unlabelled data removed and PCA-reduced
+        """
         # subset of data to fit our pca on
         sample_indexes = np.random.choice(range(len(training_data)), 100000, replace=False)
 

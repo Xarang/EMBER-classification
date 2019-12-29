@@ -1,4 +1,7 @@
-numpy
+tensorflow
+numpy==1.16.4
 matplotlib
 sklearn
 psutil
+keras
+h5py

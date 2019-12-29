@@ -2,6 +2,7 @@ ember
 kmeans
 kmeans/output/*
 env/*
+doc/*
 *.swp
 *.png
 *.vscode
