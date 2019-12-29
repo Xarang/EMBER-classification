@@ -1,6 +1,10 @@
-## @package File classifier
+## @package Module classifier
 #
-# KMEAN classifier using sklearn
+# KMEANS classifier using sklearn
+# takes 4 datasets as input (training data, training labels, validation data, validation labels)
+# reduce data size using PCA on a subset of our data
+# train on the PCA reduced data
+# evaluates on validation set
 #
 
 
@@ -95,7 +99,6 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
 
         # transform all validation data with the pca we just computed
 
-        validation_data, validation_labels = remove_unlabelled_data(validation_data, validation_labels)
         new_validation_data = pca.transform(validation_data)
         new_validation_labels = validation_labels
         print("[CLASSIF] transformed our validation data using PCA. Time elapsed since start: {}".format(time.time() - time_start))
@@ -169,6 +172,10 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
 # run this in a separate thread
 
 if __name__ == '__main__':
+
+    if (len(sys.argv) != 5)
+        print("[CLASSIF] usage: {} [xtrainfile] [ytrainfile] [xvalidationfile] [yvalidationfile]".format(sys.argv[0]))
+        return
     xtrainfile = sys.argv[1]
     ytrainfile = sys.argv[2]
     xvalidationfile = sys.argv[3]
