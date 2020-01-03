@@ -6,3 +6,4 @@ doc/*
 *.png
 *.vscode
 *.o
+*.out
