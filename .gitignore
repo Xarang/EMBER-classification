@@ -1,5 +1,4 @@
 ember
-kmeans
 kmeans/output/*
 env/*
 doc/*

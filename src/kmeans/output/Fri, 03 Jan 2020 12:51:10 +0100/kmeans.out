@@ -1,0 +1,29 @@
+[KMEANS] Start kmeans on ../../ember/Xtrain.dat datafile [K = 2, dim = 2351, nbVec = 900000]
+[CENTROIDS] mean distance from centroid #0 to all other vectors: 307007963.350475
+[CENTROIDS] mean distance from centroid #1 to all other vectors: 685231641.898974
+[CENTROIDS] distance between centroid #0 and #1: 758643112.240353
+[KMEANS] structure initialisation done in 2.908617 sec
+Iteration: 0. done classification in 1.448499. Marked 7.000000 vectors
+Iteration: 0. done mean card computation in 0.000014
+[KMEANS] Iteration: 0, Time: 1.448514, error improvement: inf, distance computed 1758478.000000 times
+Iteration: 1. done classification in 1.446894. Marked 4.000000 vectors
+Iteration: 1. done mean card computation in 0.000034
+[KMEANS] Iteration: 1, Time: 1.446928, error improvement: 13.530138, distance computed 1758349.000000 times
+Iteration: 2. done classification in 1.443506. Marked 16.000000 vectors
+Iteration: 2. done mean card computation in 0.000015
+[KMEANS] Iteration: 2, Time: 1.443522, error improvement: 21.083975, distance computed 1757985.000000 times
+Iteration: 3. done classification in 1.448130. Marked 3.000000 vectors
+Iteration: 3. done mean card computation in 0.000014
+[KMEANS] Iteration: 3, Time: 1.448146, error improvement: 20.847368, distance computed 1757718.000000 times
+Iteration: 4. done classification in 1.449877. Marked 10.000000 vectors
+Iteration: 4. done mean card computation in 0.000032
+[KMEANS] Iteration: 4, Time: 1.449911, error improvement: 2.868706, distance computed 1758032.000000 times
+Iteration: 5. done classification in 1.445213. Marked 0.000000 vectors
+Iteration: 5. done mean card computation in 0.000014
+[KMEANS] Iteration: 5, Time: 1.445228, error improvement: 11.299763, distance computed 1758394.000000 times
+Iteration: 6. done classification in 1.450298. Marked 0.000000 vectors
+Iteration: 6. done mean card computation in 0.000029
+[KMEANS] Iteration: 6, Time: 1.450329, error improvement: 0.000000, distance computed 1758357.000000 times
+[KMEANS] completed in 13.041566 sec
+outputted 737903.000000 vectors in cluster #0
+outputted 162097.000000 vectors in cluster #1

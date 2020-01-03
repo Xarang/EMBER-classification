@@ -1,0 +1,17 @@
+[KMEANS] Start kmeans on ../../ember/Xtrain.dat datafile [K = 2, dim = 2351, nbVec = 900000]
+[CENTROIDS] mean distance from centroid #0 to all other vectors: 304924669.129622
+[CENTROIDS] mean distance from centroid #1 to all other vectors: 295335946.635976
+[CENTROIDS] distance between centroid #0 and #1: 38903315.977789
+[KMEANS] structure initialisation done in 2.849732 sec
+Iteration: 0. done classification in 1.445374. Marked 3.000000 vectors
+Iteration: 0. done mean card computation in 0.000013
+[KMEANS] Iteration: 0, Time: 1.445389, error improvement: inf, distance computed 1759716.000000 times
+Iteration: 1. done classification in 1.514073. Marked 0.000000 vectors
+Iteration: 1. done mean card computation in 0.000032
+[KMEANS] Iteration: 1, Time: 1.514106, error improvement: 0.727271, distance computed 1758612.000000 times
+Iteration: 2. done classification in 1.579460. Marked 0.000000 vectors
+Iteration: 2. done mean card computation in 0.000014
+[KMEANS] Iteration: 2, Time: 1.579475, error improvement: 0.000000, distance computed 1757653.000000 times
+[KMEANS] completed in 7.389175 sec
+outputted 341191.000000 vectors in cluster #0
+outputted 558809.000000 vectors in cluster #1

@@ -1,0 +1,7 @@
+Ignoring unlabelled data:
+Accuracy:  0.506285
+Precision:  0.5072105240712251
+Recall:  0.506285
+Confusion Matrix: 
+ [[205626  94374]
+ [201855  98145]]
