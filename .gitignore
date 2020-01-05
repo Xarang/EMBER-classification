@@ -7,3 +7,5 @@ doc/*
 *.vscode
 *.o
 *.out
+__pycache__/*
+dataset/*
