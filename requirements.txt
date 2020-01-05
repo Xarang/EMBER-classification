@@ -5,3 +5,4 @@ sklearn
 psutil
 keras
 h5py
+pandas
