@@ -56,7 +56,7 @@ class ember_classification_dnn:
     # builds our dnn and compiles it
     def build_dnn(self):
 
-        hidden_layer_sizes = [ 512, 128, 128, 64, 32 ]
+        hidden_layer_sizes = [ 1024, 512, 256, 128, 64 ]
         hidden_layer_activation_function='relu'
 
         model = Sequential()
