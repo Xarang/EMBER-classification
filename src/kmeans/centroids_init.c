@@ -98,7 +98,7 @@ unsigned *cluster_initial_vectors(struct kmeans_params *p)
     unsigned *subset = get_subset_indexes(p->nb_vec);
     unsigned *candidates = get_candidates(subset);
     unsigned *centroids = calloc(sizeof(unsigned), p->k);
-    centroids[0] = rand() % p->nb_vec; //TODO: find a better way to find first centroid
+    centroids[0] = rand() % p->nb_vec; //first centroid is random ?
     unsigned nb_centroids = 1;
     for (size_t i = 1; i < p->k; i++)
     {
@@ -123,7 +123,6 @@ unsigned *cluster_initial_vectors(struct kmeans_params *p)
             if (n_lesser == n_greater)
             {
                 // we take the candidate with median potential
-                printf("%u\n", n_lesser);
                 centroids[i] = candidates[j];
                 free(potentials);
                 break;

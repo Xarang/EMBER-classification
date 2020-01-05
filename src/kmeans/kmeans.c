@@ -12,7 +12,6 @@ double distance_computation_occurences = 0;
 
 /*
 ** euclidian distance between 2 vectors of dimension dim
-** use case: vec1 -> some vector; vec2 -> mean vector of cluster k
 */
 inline double distance(float *vec1, float *vec2, unsigned dim) 
 {
@@ -20,7 +19,6 @@ inline double distance(float *vec1, float *vec2, unsigned dim)
     double dist = 0;
     unsigned vector_size = 8;
     __m256i index = _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7);
-    #pragma omp parallel for reduction (+: dist)
     for (unsigned i = 0; i < dim / vector_size; i++)
     {
         //vectorization of double d = vec[i] - vec2[i]
@@ -36,8 +34,7 @@ inline double distance(float *vec1, float *vec2, unsigned dim)
             +   mul_arr[6] + mul_arr[7];
         dist += sum;
     }
-    double sq = sqrt(dist);
-    return sq;
+    return sqrt(dist);
 }
 
 /*
@@ -75,10 +72,6 @@ static inline void print_result(int iter, double time, float err, double distanc
 
 static inline void compute_means_card(struct kmeans_params *p)
 {
-    //initialise all means to 0
-    memset(p->means, 0, p->vec_dim * p->k * sizeof(float));
-    //initialise all cards to 0
-    memset(p->card, 0, p->k * sizeof(unsigned));
     //initialise all mean vectors using our initialisation vectors
     memcpy(p->means, p->means_init, sizeof(float) * p->vec_dim * p->k);
     //obtain the mean vector by diving all its singular values by the amount of vectors in the cluster
@@ -86,7 +79,7 @@ static inline void compute_means_card(struct kmeans_params *p)
     {
         //#pragma omp parallel for
         for (unsigned j = 0; j < p->vec_dim; ++j)
-            p->means[i * p->vec_dim + j] /= p->card_init[i];
+            p->means[i * p->vec_dim + j] /= p->card[i];
     }
 }
 
@@ -102,13 +95,13 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->means = calloc(sizeof(float), vec_dim * k);
     params->means_init = calloc(sizeof(float), vec_dim * k);
     params->card = calloc(sizeof(unsigned), k);
-    params->card_init = calloc(sizeof(unsigned), k);
     params->error = calloc(sizeof(double), nb_vec);
     params->mark = calloc(sizeof(unsigned char), nb_vec);
     params->c = calloc(sizeof(char), nb_vec);
 
     //TODO: find out best variables to put there
-    params->min_error_to_mark = 5000.0; // min error to mark a vector as rightly placed
+    //mark vectors AGGRESSIVELY
+    params->min_error_to_mark = 500000; // min error to mark a vector as rightly placed
     params->min_error_improvement_to_continue = 0.2; //min mean error improvement to continue looping
 
     //#pragma omp parallel for
@@ -145,7 +138,7 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
             params->means_init[i * vec_dim + j] = data[values[i] * vec_dim + j];
             params->means[i * vec_dim + j] = data[values[i] * vec_dim + j];
         }
-        params->card_init[i] = 1;
+        params->card[i] = 1;
     }
     //check centroids infos
     printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
@@ -157,7 +150,6 @@ void kmeans_params_free(struct kmeans_params *p)
     free(p->means);
     free(p->means_init);
     free(p->card);
-    free(p->card_init);
     free(p->error);
     free(p->mark);
     free(p);
@@ -203,7 +195,7 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
                 if (vector_error < p->min_error_to_mark)
                 {
                     p->mark[i] = 0;
-                    p->card_init[p->c[i]] += 1;
+                    p->card[p->c[i]] += 1;
                     for (size_t j = 0; j < p->vec_dim; j++)
                     {
                         //The vector is now considered part of this cluster. we add its value to the mean vector, mean to be computed on
