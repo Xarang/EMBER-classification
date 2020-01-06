@@ -14,12 +14,18 @@ from sklearn.decomposition import IncrementalPCA
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 
-import time
+from time import time
 
 # our sklearn based incremental pca (src/utils/pca.py)
 from pca import pca
 
-time_start = time.time()
+time_start = time()
+
+def log(tag, message, time_start = None):
+    if time_start != None:
+        print("[{}] {}. Time elapsed since start: {:.2f}".format(tag, message, time() - time_start))
+    else:
+        print("[{}] {}.".format(tag, message))
 
 ## Classify
 # Extracts data from xtrain, ytrain, xvalidation, yvalidations files,
@@ -31,7 +37,7 @@ time_start = time.time()
 def classify(xtrain, ytrain, xvalidation, yvalidation):
 
     VECTOR_SIZE = 2351 
-    time_start_classify = time.time()
+    time_start_classify = time()
 
     # Map all data into memory, reshape data arrays to matrixes of dimension (NB_VECTOR, VECTOR_SIZE)
     def get_data_sets(xtrain, ytrain, xvalidation, yvalidation):
@@ -43,7 +49,7 @@ def classify(xtrain, ytrain, xvalidation, yvalidation):
         training_data = training_data.reshape(-1, VECTOR_SIZE)
         validation_data = validation_data.reshape(-1, VECTOR_SIZE)
         
-        print("[CLASSIF] got data set. Time elapsed since start: {}".format(time.time() - time_start))
+        log("CLASSIF", "got data set.", time_start)
         return training_data, validation_data, training_labels, validation_labels
 
     ## Data pre treatment function. Main memory / CPU usage.
@@ -55,8 +61,8 @@ def classify(xtrain, ytrain, xvalidation, yvalidation):
        
         training_data, validation_data = pca(training_data, validation_data)
         
-        print("[CLASSIF] Transformed datasets using PCA. Training Data: {} vectors; Validation Data: {} vectors".format(len(training_data), len(validation_data)))
-        print("[CLASSIF] Time elapsed since start: {}".format(time.time() - time_start))
+        log("CLASSIF", "Transformed datasets using PCA.\nTraining Data: {} vectors; \
+            Validation Data: {} vectors".format(len(training_data), len(validation_data)), time_start)
 
         return training_data, validation_data
 
@@ -69,33 +75,27 @@ def classify(xtrain, ytrain, xvalidation, yvalidation):
         return scores, conf_matrix
             
     # 0. start !
-
-    print("[CLASSIF] starting classification process.")
+    log("CLASSIF", "starting classification process.", time_start)
 
     # 1. mmap data
-
     training_data, validation_data, training_labels, validation_labels = get_data_sets(xtrain, ytrain, xvalidation, yvalidation)
 
     # 2. pre process data
-
     training_data, validation_data = data_pre_treatment(training_data, validation_data)
 
     # 3. Build classifier and train it with Training Set
     classifier = KNeighborsClassifier(5)
-    time_clf_start = time.time()
+    time_clf_start = time()
     classifier.fit(training_data, training_labels)
-    print("[CLASSIF] trained classifier KNeighboor(5) in {:.2f} sec.".format(time.time() - time_clf_start))
+    log("CLASSIF", "trained classifier KNeighboor(5) in {:.2f} sec.".format(time() - time_clf_start))
     
     # 4. Evaluate classifier with Validation Set
-    
     scores, matrix, = evaluate(classifier, validation_data, validation_labels)
-
-    print("[CLASSIF] classifier KNeighboor(5) classified validation set in {:.2f} sec.".format(time.time() - time_clf_start))
-    print("[CLASSIF] confusion matrix:")
+    log("CLASSIF", "classifier KNeighboor(5) classified validation set in {:.2f} sec.".format(time() - time_clf_start))
+    log("CLASSIF", "confusion matrix:")
     print(matrix)
-    print("[CLASSIF] scores:")
-    print("[CLASSIF] precision: ------------ {:.2f} / 1.0".format(scores[0]))
-    print("[CLASSIF] recall: --------------- {:.2f} / 1.0".format(scores[1]))
-    print("[CLASSIF] F-beta score: --------- {:.2f} / 1.0".format(scores[2]))
-
-    print("[CLASSIF] exiting program after {:.2f} seconds".format(time.time() - time_start_classify))
+    log("CLASSIF", "scores:")
+    log("CLASSIF", "precision: ------------ {:.2f} / 1.0".format(scores[0]))
+    log("CLASSIF", "recall: --------------- {:.2f} / 1.0".format(scores[1]))
+    log("CLASSIF", "F-beta score: --------- {:.2f} / 1.0".format(scores[2]))
+    log("CLASSIF", "Completed classification.", time_start)
