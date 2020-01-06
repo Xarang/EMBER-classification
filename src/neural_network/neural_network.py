@@ -12,21 +12,25 @@ from keras.layers import BatchNormalization
 from keras import optimizers
 from keras import utils
 from keras import losses
+from keras import backend as b
 
 def log(message, time_start):
     print("[DNN] {}. Time elapsed since start: {:.2f}".format(message, time.time() - time_start))
+
+def triplet_loss(y_true, y_pred):
+    return b.mean(b.maximum(b.constant(0),\
+        b.square(y_pred[:,0,0]) - 0.5 * b.square(y_pred[:,1,0]) + b.square(y_pred[:,2,0])) + b.constant(1))
 
 ## ember_classification_dnn
 # the dnn class can be used in two major ways:
 # train on a data set
 # load a model from files
 # we provide methods below to manipulate dnn
-class ember_classification_dnn:
+class ember_classification_neural_network:
     training_data = None
     training_labels = None
     validation_data = None
     validation_labels = None
-
     model = None
 
     def __init__(self):
@@ -68,7 +72,7 @@ class ember_classification_dnn:
         model.add(Dense(1, activation='sigmoid', name='output'))
         log("Built DNN", self.time_start)
         self.model = model
-        self.compile()
+        self.compile() 
 
     def compile(self):
         opt = optimizers.Adagrad(lr=0.0007)
@@ -76,6 +80,13 @@ class ember_classification_dnn:
                     optimizer=opt,
                     metrics=['accuracy'])
         log("Compiled DNN. Time elapsed since start", self.time_start)
+
+    ## builds dnn using triplet loss function (siamese network)
+    def build_siamese(self):
+        pass
+
+    def compile_siamese(self):
+        pass
 
     ## train
     # Training function. requires a built dnn, and all datasets to be previously loaded
@@ -127,7 +138,7 @@ class ember_classification_dnn:
 # Then run evaluation once and outputs generated model in a file
 # named after current time
 def train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile):
-    ecd = ember_classification_dnn()
+    ecd = ember_classification_neural_network()
     log("[TRAIN&SAVE] entered train&save procedure", ecd.time_start)
     log("[TRAIN&SAVE] data sets: {}".format([xtrainfile, ytrainfile, xvalidationfile, yvalidationfile]), ecd.time_start)
     ecd.load_training_set(xtrainfile, ytrainfile)
@@ -147,7 +158,7 @@ def train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile):
 # @param xvalidationfile: validation data
 # @param yvalidationfile: validation labels
 def load_and_evaluate(model_filename, xvalidationfile, yvalidationfile):
-    ecd = ember_classification_dnn()
+    ecd = ember_classification_neural_network()
     log("[LOAD&EVALUATE] entered load&evaluate procedure", ecd.time_start)
     log("[LOAD&EVALUATE] model filename: {}".format(model_filename), ecd.time_start)
     log("[LOAD&EVALUATE] data sets: {}".format([xvalidationfile, yvalidationfile]), ecd.time_start)
