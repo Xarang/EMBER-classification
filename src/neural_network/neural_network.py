@@ -8,19 +8,16 @@ import numpy as np
 
 from keras.models import model_from_json
 from keras import utils
-from keras import backend as b
+from keras.utils import plot_model
 
 from dnn.dnn import build_dnn, compile_dnn
+from siamese.siamese import build_siamese, compile_siamese
 
 def log(tag, message, time_start = None):
     if time_start != None:
         print("[{}] {}. Time elapsed since start: {:.2f}".format(tag, message, time() - time_start))
     else:
         print("[{}] {}.".format(tag, message))
-
-def triplet_loss(y_true, y_pred):
-    return b.mean(b.maximum(b.constant(0),\
-        b.square(y_pred[:,0,0]) - 0.5 * b.square(y_pred[:,1,0]) + b.square(y_pred[:,2,0])) + b.constant(1))
 
 ## ember_classification_dnn
 # the dnn class can be used in two major ways:
@@ -66,11 +63,8 @@ class ember_classification_neural_network:
             self.model = build_dnn()
             compile_dnn(self.model)
         else:
-            pass
-
-    ## builds dnn using triplet loss function (siamese network)
-    def build_siamese(self):
-        pass
+            self.model = build_siamese()
+            compile_siamese(self.model)
 
 
     ## train
@@ -114,7 +108,8 @@ class ember_classification_neural_network:
         if self.nn_type == 'dnn':
             compile_dnn(self.model)
         else:
-            pass
+            compile_siamese(self.model)
+        # output model image plot_model(self.model, 'model.png', show_shapes=True)
 
 
 ## dnn_train_and_save
@@ -122,35 +117,37 @@ class ember_classification_neural_network:
 # @param ytrainfile: training labels
 # @param xvalidationfile: validation data
 # @param yvalidationfile: validation labels
-# Loads provided dataset, builds a dnn and train on training dataset,
+# @param nn_type: neural network type (dnn / siamese)
+# Loads provided dataset, builds a nn of specified type and train on training dataset,
 # Then run evaluation once and outputs generated model in a file
 # named after current time
-def dnn_train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile):
-    ecd = ember_classification_neural_network('dnn')
-    log("[DNN]TRAIN&SAVE entered train&save procedure", ecd.time_start)
-    log("[DNN]TRAIN&SAVE data sets: {}".format([xtrainfile, ytrainfile, xvalidationfile, yvalidationfile]), ecd.time_start)
+def train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile, nn_type):
+    ecd = ember_classification_neural_network(nn_type)
+    log("TRAIN&SAVE entered train&save procedure", ecd.time_start)
+    log("TRAIN&SAVE data sets: {}".format([xtrainfile, ytrainfile, xvalidationfile, yvalidationfile]), ecd.time_start)
     ecd.load_training_set(xtrainfile, ytrainfile)
     ecd.load_validation_set(xvalidationfile, yvalidationfile)
     if not os.path.exists('models'):
         os.mkdir('models')
-    ecd.build_dnn()
-    ecd.train('models/train_{}'.format(time.clock_gettime(0)))
+    ecd.build()
+    ecd.train('models/train_{}'.format(clock_gettime(0)))
     ecd.evaluate()
-    log("[DNN]TRAIN&SAVE", "exited train&save procedure", ecd.time_start)
+    log("TRAIN&SAVE", "exited train&save procedure", ecd.time_start)
 
 
-## dnn_load_and_evaluate
+## load_and_evaluate
 # @param model_filename: base filename of model to be loaded from. 
 # Weights are contained in 'model_filename'.model whereas model is contained in 'model_filename'.json
 # I provide a pre-trained model and weights in this repository, that can be found in dnn/models/
 # @param xvalidationfile: validation data
 # @param yvalidationfile: validation labels
-def dnn_load_and_evaluate(model_filename, xvalidationfile, yvalidationfile):
-    ecd = ember_classification_neural_network('dnn')
-    log("[DNN]LOAD&EVALUATE", "entered load&evaluate procedure", ecd.time_start)
-    log("[DNN]LOAD&EVALUATE", "model filename: {}".format(model_filename), ecd.time_start)
-    log("[DNN]LOAD&EVALUATE", "data sets: {}".format([xvalidationfile, yvalidationfile]), ecd.time_start)
+# @param nn_type: neural network type (dnn / siamese)
+def load_and_evaluate(model_filename, xvalidationfile, yvalidationfile, nn_type):
+    ecd = ember_classification_neural_network(nn_type)
+    log("LOAD&EVALUATE", "entered load&evaluate procedure", ecd.time_start)
+    log("LOAD&EVALUATE", "model filename: {}".format(model_filename), ecd.time_start)
+    log("LOAD&EVALUATE", "data sets: {}".format([xvalidationfile, yvalidationfile]), ecd.time_start)
     ecd.load_validation_set(xvalidationfile, yvalidationfile)
     ecd.load(model_filename)
     ecd.evaluate()
-    log("[DNN]LOAD&EVALUATE", "exited load&evaluate procedure", ecd.time_start)
+    log("LOAD&EVALUATE", "exited load&evaluate procedure", ecd.time_start)
