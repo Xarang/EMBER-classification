@@ -50,7 +50,7 @@ class ember_classification_dnn:
         self.validation_data = self.validation_data.reshape(-1, self.VECTOR_SIZE)
         self.validation_labels = np.memmap(yvalidation, dtype=np.float32, mode='c', order='C')
         assert(len(self.validation_data) == len(self.validation_labels))
-        log("got Validation set. Size: {}".format(len(self.training_data)), self.time_start)
+        log("got Validation set. Size: {}".format(len(self.validation_data)), self.time_start)
 
     ## build_dnn
     # builds our dnn and compiles it
@@ -100,7 +100,7 @@ class ember_classification_dnn:
     def evaluate(self):
         score, metrics = self.model.evaluate(self.validation_data, self.validation_labels, batch_size = 10)
         log("DNN evaluation", self.time_start)
-        log("Score: {}".format(score), self.time_start)
+        log("Loss: {}".format(score), self.time_start)
         log("Accuracy: {}".format(metrics), self.time_start)
 
     ## load
@@ -129,6 +129,7 @@ class ember_classification_dnn:
 def train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile):
     ecd = ember_classification_dnn()
     log("[TRAIN&SAVE] entered train&save procedure", ecd.time_start)
+    log("[TRAIN&SAVE] data sets: {}".format([xtrainfile, ytrainfile, xvalidationfile, yvalidationfile]), ecd.time_start)
     ecd.load_training_set(xtrainfile, ytrainfile)
     ecd.load_validation_set(xvalidationfile, yvalidationfile)
     if not os.path.exists('models'):
@@ -148,7 +149,9 @@ def train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile):
 def load_and_evaluate(model_filename, xvalidationfile, yvalidationfile):
     ecd = ember_classification_dnn()
     log("[LOAD&EVALUATE] entered load&evaluate procedure", ecd.time_start)
+    log("[LOAD&EVALUATE] model filename: {}".format(model_filename), ecd.time_start)
+    log("[LOAD&EVALUATE] data sets: {}".format([xvalidationfile, yvalidationfile]), ecd.time_start)
     ecd.load_validation_set(xvalidationfile, yvalidationfile)
     ecd.load(model_filename)
-    ecd.evaluate
+    ecd.evaluate()
     log("[LOAD&EVALUATE] exited load&evaluate procedure", ecd.time_start)
