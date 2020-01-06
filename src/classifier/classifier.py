@@ -7,8 +7,6 @@
 # evaluates on validation set
 #
 
-
-import sys
 import numpy as np
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -16,15 +14,11 @@ from sklearn.decomposition import IncrementalPCA
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 
-from multiprocessing import Process
-
-import psutil
-
 import time
 
 time_start = time.time()
 
-
+#TODO: remove the unlabelled data stripping
 
 ## Classify
 # Extracts data from xtrain, ytrain, xvalidation, yvalidations files,
@@ -51,16 +45,9 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
 
     # Returns a generator that yields chunks of size 'chunk_size'
     # from arrays data and labels
-    def chunks(data: np.array, labels: np.array, chunk_size: int):
-        for i in range(0, len(data), chunk_size):
-            yield ( data[i:i + chunk_size, :], labels[i:i + chunk_size] )
-
-    # Returns data and labels, stripped from their unlabelled data
-    def remove_unlabelled_data(data, labels):
-        labelled_indexes = labels != -1
-        data = data[labelled_indexes]
-        labels = labels[labelled_indexes]
-        return data, labels
+    def chunks(data: np.array):
+        for i in range(0, len(data), VECTOR_CHUNK_SIZE):
+            yield data[i:i + VECTOR_CHUNK_SIZE, :]
 
     # Map all data into memory, reshape data arrays to matrixes of dimension (NB_VECTOR, VECTOR_SIZE)
     def get_data_sets(xtrain, ytrain, xvalidation, yvalidation):
@@ -84,14 +71,13 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
     # The PCA is computed by increments to avoid RAM overusage (increases computation time..)
 # 
     # Returns all the data array passed as arguments, unlabelled data removed and PCA-reduced
-    def data_pre_treatment(training_data, validation_data, training_labels, validation_labels):
+    def data_pre_treatment(training_data, validation_data):
        
         # subset of data to fit our pca on
         sample_indexes = np.random.choice(range(len(training_data)), 100000, replace=False)
 
         subset = training_data[sample_indexes]
         subset_indexes = training_labels[sample_indexes]
-        subset, subset_indexes = remove_unlabelled_data(subset, subset_indexes)
 
         pca = IncrementalPCA(n_components=PCA_NB_COMPONENTS, batch_size = 100)
         pca = pca.fit(subset)
@@ -100,20 +86,16 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
         # transform all validation data with the pca we just computed
 
         new_validation_data = pca.transform(validation_data)
-        new_validation_labels = validation_labels
         print("[CLASSIF] transformed our validation data using PCA. Time elapsed since start: {}".format(time.time() - time_start))
 
         # We process our training data by smaller chunks to not overload RAM usage
 
         new_training_data = np.vstack([ \
-                pca.transform(remove_unlabelled_data(chunk_tuple[0], chunk_tuple[1])[0]) \
-                for chunk_tuple in chunks(training_data, training_labels, VECTOR_CHUNK_SIZE) \
-                ])
-        new_training_labels = training_labels[training_labels != -1]
+            pca.transform(chunk) for chunk in chunks(training_data) ])
         print("[CLASSIF] Transformed datasets using PCA. Training Data: {} vectors; Validation Data: {} vectors".format(len(new_training_data), len(new_validation_data)))
         print("[CLASSIF] Time elapsed since start: {}".format(time.time() - time_start))
 
-        return new_training_data, new_validation_data, new_training_labels, new_validation_labels
+        return new_training_data, new_validation_data
 
     def evaluate(classifier, validation_data, validation_labels):
         """
@@ -136,7 +118,7 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
 
     # 2. pre process data
 
-    training_data, validation_data, training_labels, validation_labels = data_pre_treatment(training_data, validation_data, training_labels, validation_labels)
+    training_data, validation_data = data_pre_treatment(training_data, validation_data)
 
     # 3. sanity check for results from pre processing
 
@@ -167,37 +149,3 @@ def classify(xtrain, ytrain, xvalidation, yvalidation, classifiers = [ ("KNeighb
 
     print("[CLASSIF] exiting program after {:.2f} seconds".format(time.time() - time_start_classify))
 
-
-# run this in a separate thread
-
-if __name__ == '__main__':
-
-    if (len(sys.argv) != 5):
-        print("[CLASSIF] usage: {} [xtrainfile] [ytrainfile] [xvalidationfile] [yvalidationfile]".format(sys.argv[0]))
-        exit
-    xtrainfile = sys.argv[1]
-    ytrainfile = sys.argv[2]
-    xvalidationfile = sys.argv[3]
-    yvalidationfile = sys.argv[4]
-
-    def get_resources_informations(report_id):
-        memory_infos = psutil.virtual_memory()
-        cpu_usage = psutil.cpu_percent()
-        memory_used = memory_infos.total - memory_infos.available
-        memory_used_gb = memory_used / 1024 / 1024 / 1024
-        memory_used_percentage = memory_used / memory_infos.total * 100
-
-        print("[RESOURCES] report #{}; Memory used: {:.2f} GB ({:.2f}%). CPU usage: {:.2f}%".format(report_id, memory_used_gb, memory_used_percentage, cpu_usage))
-
-    run_classifier = Process(target=classify, args=[xtrainfile, ytrainfile, xvalidationfile, yvalidationfile])
-
-    run_classifier.start()
-    report_id = 0
-    while run_classifier.is_alive():
-        run_memory_monitor = Process(target=get_resources_informations, args=[report_id])
-        run_memory_monitor.start()
-        report_id += 1
-        run_memory_monitor.join()
-        time.sleep(10)
-
-    run_classifier.join()
