@@ -12,4 +12,4 @@ if xtrainfile == None or xvalidationfile == None or ytrainfile == None or yvalid
     print("[EVAL] make sure you run the ./setup script at the root of the project or set these variables manually")
     exit
 
-neural_network.train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile)
+neural_network.dnn_train_and_save(xtrainfile, ytrainfile, xvalidationfile, yvalidationfile)
