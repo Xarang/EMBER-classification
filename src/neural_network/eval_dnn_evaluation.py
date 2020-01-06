@@ -1,4 +1,4 @@
-import dnn
+import neural_network
 import sys
 import os
 
@@ -11,4 +11,4 @@ if model_filename == None or xvalidationfile == None or yvalidationfile == None:
     print("[EVAL] make sure you run the ./setup script at the root of the project or set these variables manually")
     exit
 
-dnn.load_and_evaluate(model_filename, xvalidationfile, yvalidationfile)
+neural_network.load_and_evaluate(model_filename, xvalidationfile, yvalidationfile)

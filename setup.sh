@@ -17,7 +17,7 @@ set_env()
     echo -n "os.environ['VALIDATION_DATA']='$PWD/dataset/Xvalidation.dat'; " >> "$PATH_TO_PTH"
     echo -n "os.environ['TRAINING_LABELS']='$PWD/dataset/Ytraining.dat'; " >> "$PATH_TO_PTH"
     echo -n "os.environ['VALIDATION_LABELS']='$PWD/dataset/Yvalidation.dat'; " >> "$PATH_TO_PTH"
-    echo -n "os.environ['DNN_MODEL']='$PWD/src/dnn/models/04/04'; " >> "$PATH_TO_PTH"
+    echo -n "os.environ['DNN_MODEL']='$PWD/src/neural_network/dnn/models/04/04'; " >> "$PATH_TO_PTH"
 }
 
 SCRIPT_DIR="$(dirname $0)"
