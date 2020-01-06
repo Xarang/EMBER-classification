@@ -71,8 +71,9 @@ class ember_classification_dnn:
         self.compile()
 
     def compile(self):
+        opt = optimizers.Adagrad(lr=0.001)
         self.model.compile(loss='binary_crossentropy',
-                    optimizer='Adagrad',
+                    optimizer=opt,
                     metrics=['accuracy'])
         log("Compiled DNN. Time elapsed since start", self.time_start)
 
@@ -82,7 +83,7 @@ class ember_classification_dnn:
     # After each epoch computation, runs an evaluation on our validation set to keep track
     # of our actual accuracy gain. Outputs trained model in 'output_filename'.json and weights in 'output_filename'.weights
     def train(self, output_filename):
-        NB_TRAINING_EPOCHS = 50
+        NB_TRAINING_EPOCHS = 150
         log("Starting DNN training..", self.time_start)
         self.model.fit(self.training_data, self.training_labels, epochs=NB_TRAINING_EPOCHS, validation_data=(self.validation_data, self.validation_labels), batch_size=256)
         log("DNN training completed !", self.time_start)
