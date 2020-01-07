@@ -3,6 +3,7 @@ import os
 import sys
 
 print("[DATASET] started dataset creation using data '{}' and labels '{}'".format(sys.argv[1], sys.argv[2]))
+print("[DATASET] this might take a minute or two ..")
 
 x = np.memmap(sys.argv[1], dtype=np.float32, mode='c', order='C')
 x = x.reshape(-1, 2351)
@@ -42,6 +43,8 @@ assert(len(validation_data) == len(validation_labels))
 dirname = "dataset/"
 if not os.path.exists(dirname):
     os.mkdir(dirname)
+
+print("[DATASET] outputting our datasets to files")
 
 training_data.tofile("{}Xtraining.dat".format(dirname))
 training_labels.tofile("{}Ytraining.dat".format(dirname))
