@@ -3,7 +3,7 @@
 #include <immintrin.h>
 
 #define SUBSET_SIZE 1000
-#define NB_CANDIDATES 256
+#define NB_CANDIDATES 128
 
 unsigned *get_subset_indexes(unsigned nb_vec)
 {

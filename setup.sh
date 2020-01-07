@@ -12,8 +12,7 @@ set_env()
     PATH_TO_PTH="$PWD/env/lib/python3.6/site-packages/set_env.pth"
     >"$PATH_TO_PTH"
     echo -n "import os; " >> "$PATH_TO_PTH"
-    echo -n "os.environ['ESLR_PROJECT_MAIN_DIR']='$PWD'; " >> "$PATH_TO_PTH"
-    echo -n "os.environ['ESLR_PROJECT_SOURCE_DIR']='$PWD/src/'; " >> "$PATH_TO_PTH"
+    echo -n "os.environ['ESLR_PROJECT_MAIN_DIR']='$PWD/'; " >> "$PATH_TO_PTH"
     echo -n "os.environ['TRAINING_DATA']='$PWD/dataset/Xtraining.dat'; " >> "$PATH_TO_PTH"
     echo -n "os.environ['VALIDATION_DATA']='$PWD/dataset/Xvalidation.dat'; " >> "$PATH_TO_PTH"
     echo -n "os.environ['TRAINING_LABELS']='$PWD/dataset/Ytraining.dat'; " >> "$PATH_TO_PTH"
@@ -33,7 +32,7 @@ fi
 
 # create virtual env
 rm -rf env/ 2>/dev/null
-python3 -m venv --python=/usr/bin/python3.6 env
+python3.6 -m venv env
 log '(1/4) Created virtual env'
 
 # install requirements
