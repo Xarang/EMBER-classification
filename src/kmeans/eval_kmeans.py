@@ -40,12 +40,11 @@ for i in range(nb_try):
 
 
     cards = np.array([ [0.0, 0.0], [0.0, 0.0] ])
-    for i in range(len(classif)):
-        if (exact[i] >= 0): #ignore unlabelled data when evaluating
-            cards[int(classif[i])][int(exact[i])] += 1.0
+    for j in range(len(classif)):
+        if (exact[j] >= 0): #ignore unlabelled data when evaluating
+            cards[int(classif[j])][int(exact[j])] += 1.0
 
     print(cards)
-
     # test 1: compare repartition in both clusters;
     # the more balanced it is, higher the score
     card_0 = cards[0][0] + cards[0][1]
@@ -54,19 +53,20 @@ for i in range(nb_try):
 
     # test 2: compare cluster repartitions with 'Ideal' repartions
     # 'Ideal' = all data of same labelled clustered together
-    expected_card_per_label = len(classif) / 2.0
-    v1 = np.array([ [0.0, expected_card_per_label], [expected_card_per_label, 0.0] ])
-    v2 = np.array([ [expected_card_per_label, 0.0], [0.0, expected_card_per_label] ])
+    v1 = np.array([ [0.0, 1.0], [1.0, 0.0] ])
+    v2 = np.array([ [1.0, 0.0], [0.0, 1.0] ])
+
+    def normalize(card):
+        return card / max(card[0], card[1])
 
     def score(card):
         # Compute distance to closest ideal vector
         score = min(euclidean(card, v1[0]), euclidean(card, v1[1]),\
                         euclidean(card, v2[0]), euclidean(card, v2[1]))
         # Compare this distance with the worse distance possible
-        score /= expected_card_per_label
         return 1 - score
-    score_0 = score(cards[0])
-    score_1 = score(cards[1])
+    score_0 = score(normalize(cards[0]))
+    score_1 = score(normalize(cards[1]))
     print("[EVAL][KMEANS][{}] computed in {:.2f} seconds ---- cluster repartition : {:.0f}/{:.0f} (score: {:.2f}) ---- cluster[0] score: {:.2f} ---- cluster[1] score: {:.2f}".format(\
         i, computation_time, card_0, card_1, repartition_ratio, score_0, score_1))
 
@@ -81,4 +81,3 @@ print("-- mean repartition score: {}".format(mean_repartition_score / nb_try))
 print("-- mean cluster 0 score: {}".format(mean_cluster_0_score / nb_try))
 print("-- mean cluster 1 score: {}".format(mean_cluster_1_score / nb_try))
 print("-- mean computation time: {}".format(mean_computation_time / nb_try))
-
