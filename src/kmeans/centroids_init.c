@@ -103,7 +103,8 @@ void get_candidate_pairs(double *mean_distance_vector, size_t *nb_candidate_pair
         {
             if (i != j)
             {
-                if ((fabs((mean_distance_vector[i] / mean_distance_vector[j]) - 1)) < 0.2) //if distances are at most 0.8/1.2 of each other
+                //if distances are at most 0.8/1.2 of each other
+                if ((fabs((mean_distance_vector[i] / mean_distance_vector[j]) - 1)) < 0.2)
                 {
                     pairs[*nb_candidate_pairs][0] = i;
                     pairs[*nb_candidate_pairs][1] = j;
@@ -160,6 +161,15 @@ unsigned *cluster_initial_2_centroids(struct kmeans_params *p)
     printf("[CENTROID INIT] mean distance from centroids[0] to all other points in subset: %f\n", mean_distance_vector[pair[0]]);
     printf("[CENTROID INIT] mean distance from centroids[1] to all other points in subset: %f\n", mean_distance_vector[pair[1]]);
     printf("[CENTROID INIT] distance between [0] and [1]: %f\n", distance_matrix[pair[0]][pair[1]]);
+
+    for (size_t i = 0; i < NB_CANDIDATES; i++)
+    {
+        free(distance_matrix[i]);
+    }
+    free(distance_matrix);
+    free(mean_distance_vector);
+    free(candidates);
+    free(subset);
 
     return centroids;
 }
