@@ -37,8 +37,8 @@ struct kmeans_params
     unsigned k;
 
     //computation arrays
-    unsigned *card;
-    unsigned *card_init;
+    unsigned *cards;
+    unsigned *cards_init;
     float *means;
     float *means_init;
     double *error;
@@ -46,7 +46,9 @@ struct kmeans_params
     unsigned char *mark;
 
     double min_error_improvement_to_continue;
+    double min_error_ratio_improvement_to_continue;
     double min_error_to_mark;
+    double min_error_improvement_to_mark;
 
 };
 
@@ -62,10 +64,36 @@ void write_class_in_float_format(unsigned char *data,
         unsigned nb_elt, char *filename);
 
 /*
+** same as distance(), except does not apply sqrt at the end
+*/
+double distance(float *vec1, float *vec2);
+
+/*
+** divides all mean vectors by the card of their respective cluster (to actually get the mean value)
+*/
+void divide_mean_vectors(float *means, unsigned *cards, unsigned k, unsigned vec_dim);
+
+/*
+** dumps vector masked values
+*/
+void vector_print(float *vec);
+
+/*
+** add vectors using our feature mask; useful for mean vector computation
+*/
+void add_to_vector(float *dest, float *src);
+
+/*
 ** returns indexes of vectors to base initial clusters on utilizing
 ** cluster potential calculation
 */
 unsigned *cluster_initial_vectors(struct kmeans_params *p);
+
+/*
+** returns indexes of vectors to base initial clusters on utilizing
+** cluster potential calculation
+*/
+unsigned *cluster_initial_2_centroids(struct kmeans_params *p);
 
 
 #endif /* MY_KMEANS_H */

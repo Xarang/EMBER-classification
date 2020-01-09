@@ -3,7 +3,6 @@ kmeans/output/*
 env/*
 doc/*
 *.swp
-*.png
 *.vscode
 *.o
 *.out
