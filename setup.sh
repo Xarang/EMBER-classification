@@ -32,14 +32,14 @@ fi
 
 # create virtual env
 rm -rf env/ 2>/dev/null
-python3.6 -m venv env
+python3.6 -m venv python/env
 log '(1/4) Created virtual env'
 
 # install requirements
-cd env
+cd python/env
 . bin/activate
-cd ..
-pip3 install -r requirements.txt
+cd -
+pip3 install -r python/requirements.txt
 log '(2/4) Installed requirements'
 
 # set environment variables
