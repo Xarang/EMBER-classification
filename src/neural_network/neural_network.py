@@ -63,8 +63,7 @@ class ember_classification_neural_network:
             self.model = build_dnn()
             compile_dnn(self.model)
         else:
-            self.model = build_siamese()
-            compile_siamese(self.model)
+            pass # could experiment with other nn structures there
 
 
     ## train
@@ -89,7 +88,7 @@ class ember_classification_neural_network:
     # displays some useful metrics regarding our results
     def evaluate(self):
         score, metrics = self.model.evaluate(self.validation_data, self.validation_labels, batch_size = 10)
-        log("NEURAL NETWORK", "DNN evaluation:", self.time_start)
+        log("NEURAL NETWORK", "NN evaluation:", self.time_start)
         log("NEURAL NETWORK", "Score: {}".format(score), self.time_start)
         log("NEURAL NETWORK", "Accuracy: {}".format(metrics), self.time_start)
 
@@ -108,8 +107,7 @@ class ember_classification_neural_network:
         if self.nn_type == 'dnn':
             compile_dnn(self.model)
         else:
-            compile_siamese(self.model)
-        # output model image plot_model(self.model, 'model.png', show_shapes=True)
+            pass #could experiment with other nn structures there
 
 
 ## dnn_train_and_save
