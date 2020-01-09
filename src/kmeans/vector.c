@@ -86,7 +86,7 @@ double distance(float *vec1, float *vec2)
             +   mul_arr[6] + mul_arr[7];
         dist += sum;
     }
-    return sqrt(dist);
+    return /*sqrt(*/dist/*0)*/;
 }
 
 

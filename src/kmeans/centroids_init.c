@@ -4,7 +4,7 @@
 #include <immintrin.h>
 
 #define SUBSET_SIZE 1000
-#define NB_CANDIDATES 32
+#define NB_CANDIDATES 48
 
 unsigned *get_subset_indexes(unsigned nb_vec)
 {
@@ -63,6 +63,7 @@ unsigned *get_candidates(unsigned *subset)
 double **compute_distance_matrix(float *data, unsigned *candidates, unsigned vec_dim)
 {
     double **matrix = calloc(sizeof(void*), NB_CANDIDATES);
+    #pragma omp parallel for
     for (unsigned i = 0; i < NB_CANDIDATES; i++)
     {
         double *row = calloc(sizeof(double), NB_CANDIDATES);
@@ -78,6 +79,7 @@ double **compute_distance_matrix(float *data, unsigned *candidates, unsigned vec
 double *compute_mean_distance_vector(float *data, unsigned *candidates, unsigned *subset, unsigned vec_dim)
 {
     double *vector = calloc(sizeof(double), NB_CANDIDATES);
+    #pragma omp parallel for
     for (unsigned i = 0; i < NB_CANDIDATES; i++)
     {
         double dist = 0;
@@ -104,7 +106,7 @@ void get_candidate_pairs(double *mean_distance_vector, size_t *nb_candidate_pair
             if (i != j)
             {
                 //if distances are at most 0.8/1.2 of each other
-                if ((fabs((mean_distance_vector[i] / mean_distance_vector[j]) - 1)) < 0.2)
+                if ((fabs((mean_distance_vector[i] / mean_distance_vector[j]) - 1)) < 0.05)
                 {
                     pairs[*nb_candidate_pairs][0] = i;
                     pairs[*nb_candidate_pairs][1] = j;
