@@ -11,7 +11,8 @@ def log(tag, message, time_start = None):
     print("[{}] {} in {:.2f} sec.".format(tag, message, time() - time_start))
 
 
-## create our densely connected network
+## build_dnn
+# create our densely connected network
 def build_dnn():
     time_start = time()
     hidden_layer_sizes = [ 1024, 512, 256, 128, 64 ]
@@ -27,7 +28,8 @@ def build_dnn():
     log("DNN", "Built DNN", time_start)
     return model
 
-## compile network passed as argument using Adagrad optimizer and binary crossentropy loss
+## compile_dnn
+# compile network passed as argument using Adagrad optimizer and binary crossentropy loss
 def compile_dnn(dnn):
     time_start = time()
     opt = Adagrad(lr=0.0007)
