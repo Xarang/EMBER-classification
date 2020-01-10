@@ -1,15 +1,16 @@
 #!/bin/sh
 
-[ $# -eq 0 ] && log 'Usage: ./setup.sh ([path to ember training dataset] [path to ember training labels] | --set-variables)' && exit 1
-
 log()
 {
     echo "[SETUP] $1"
 }
 
+[ $# -eq 0 ] && log 'Usage: ./setup.sh ([path to ember training dataset] [path to ember training labels] | --set-variables)' && exit 1
+
+
 set_env()
 {
-    PATH_TO_PTH="$PWD/env/lib/python3.6/site-packages/set_env.pth"
+    PATH_TO_PTH="$PWD/python/env/lib/python3.6/site-packages/set_env.pth"
     >"$PATH_TO_PTH"
     echo -n "import os; " >> "$PATH_TO_PTH"
     echo -n "os.environ['ESLR_PROJECT_MAIN_DIR']='$PWD/'; " >> "$PATH_TO_PTH"

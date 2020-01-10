@@ -4,9 +4,9 @@ from sklearn.decomposition import IncrementalPCA
 
 def log(tag, message, time_start = None):
     if time_start != None:
-        print("[{}] {} in {:.2f}".format(tag, message, time() - time_start))
+        print("[{}] {} in {:.2f} sec".format(tag, message, time() - time_start))
 
-PCA_SUBSET_PROPORTION = 0.1
+PCA_SUBSET_SIZE = 10000
 VECTOR_CHUNK_SIZE = 10000
 PCA_NB_COMPONENTS = 20
 
@@ -20,11 +20,11 @@ def pca(training_data, validation_data):
     time_start = time()
     # subset of data to fit our pca on
     sample_indexes = np.random.choice(range(len(training_data)), \
-        int(len(training_data) * PCA_SUBSET_PROPORTION), replace=False)
+        int(PCA_SUBSET_SIZE), replace=False)
     subset = training_data[sample_indexes]
-
+    log("PCA", "Got our data subset", time_start)
     # compute our PCA by batches of 100 to avoid RAM overusage
-    pca = IncrementalPCA(n_components=PCA_NB_COMPONENTS, batch_size = 100)
+    pca = IncrementalPCA(n_components=PCA_NB_COMPONENTS, batch_size = 500)
     pca = pca.fit(subset)
     log("PCA", "computed PCA on data subset", time_start)
 
@@ -37,5 +37,5 @@ def pca(training_data, validation_data):
 
     new_training_data = np.vstack([ \
         pca.transform(chunk) for chunk in chunks(training_data) ])
-
+    log("PCA", "transformed our training data using PCA", time_start)
     return new_training_data, new_validation_data

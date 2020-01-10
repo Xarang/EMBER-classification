@@ -41,8 +41,8 @@ void write_class_in_float_format(unsigned char *data,
         float f = data[i]/* - 1*/;
         fwrite(&f, sizeof(float), 1, fp);
     }
-    printf("outputted %f vectors in cluster #0\n", counts[0]);
-    printf("outputted %f vectors in cluster #1\n", counts[1]);
+    //printf("outputted %f vectors in cluster #0\n", counts[0]);
+    //printf("outputted %f vectors in cluster #1\n", counts[1]);
 
     fclose(fp);
 }

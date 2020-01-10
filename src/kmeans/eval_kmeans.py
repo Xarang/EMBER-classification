@@ -8,7 +8,7 @@ import time
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 
 if len(sys.argv) < 3:
-    log("Usage: {} [Path to X] [Path to Y] [nb try = 1]".format(sys.argv[0]))
+    print("Usage: {} [Path to X] [Path to Y] [nb try = 1]".format(sys.argv[0]))
     exit(1)
 
 

@@ -36,8 +36,10 @@ inline unsigned char classify(float *vec, double *error, struct kmeans_params *p
 
 static inline void print_result(int iter, double time, float err)
 {
-    printf("[KMEANS] Iteration: %d, Time: %lf, error: %f\n",
-            iter, time, err);
+    if (getenv("TEST") != NULL)
+        printf("{\"iteration\": \"%d\", \"time\": \"%lf\", \"error\": \"%f\"}\n", iter, time, err);
+    else
+        printf("Iteration: %d, Time: %lf, Error: %f\n", iter, time, err);
 }
 
 static inline void compute_means_card(struct kmeans_params *p)
@@ -65,7 +67,7 @@ static inline void compute_means_card(struct kmeans_params *p)
 
 struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k)
 {
-    double t_init = omp_get_wtime();
+    //double t_init = omp_get_wtime();
 
     struct kmeans_params *params = malloc(sizeof(struct kmeans_params));
     params->data = data;
@@ -78,17 +80,15 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
 
     //TODO: find out best variables to put there
     params->min_error_improvement_to_continue = 0.1;
-    //#pragma omp parallel for
     unsigned *values = cluster_initial_2_centroids(params);
-    printf("[KMEANS] got our centroids: %d; %d\n", values[0], values[1]);
-
+    //printf("[KMEANS] got our centroids: %d; %d\n", values[0], values[1]);
 
     // set initial cluster values to values of centroids
     for (unsigned i = 0; i < k; i++)
     {
         add_to_vector(params->means + i * vec_dim, data + values[i] * vec_dim);
     }
-    printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
+    //printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
     free(values);
     return params;
 }
@@ -112,8 +112,7 @@ void kmeans_params_free(struct kmeans_params *p)
 unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
                       unsigned char k, unsigned max_iter)
 {
-    warnx("[KMEANS] entered program.");
-    double t_start = omp_get_wtime();
+    //double t_start = omp_get_wtime();
 
     unsigned iter = 0;
     double previous_iteration_error = DBL_MAX;
@@ -133,15 +132,15 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
             p->c[i] = classify(data + i * p->vec_dim, &vector_error, p);
             iteration_total_error += vector_error;
         }
-        double t_classification = omp_get_wtime();
-        printf("[KMEANS] Iteration: %d. done classification in %f\n", iter, t_classification - t1);
+        //double t_classification = omp_get_wtime();
+        //printf("[KMEANS] Iteration: %d. done classification in %f\n", iter, t_classification - t1);
 
         //update means
         compute_means_card(p);
 
-        double t_mean_card_computation = omp_get_wtime();
-        printf("[KMEANS] Iteration: %d. done mean card computation in %f. card[0]: %d. card[1]: %d\n",
-            iter, t_mean_card_computation - t_classification, p->cards[0], p->cards[1]);
+        //double t_mean_card_computation = omp_get_wtime();
+        //printf("[KMEANS] Iteration: %d. done mean card computation in %f. card[0]: %d. card[1]: %d\n",
+        //    iter, t_mean_card_computation - t_classification, p->cards[0], p->cards[1]);
 
         //obtain the mean error
         double iteration_mean_error = iteration_total_error / p->nb_vec;
@@ -157,13 +156,12 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     unsigned char *result = p->c;
     kmeans_params_free(p);
 
-    printf("[KMEANS] completed in %f sec\n", omp_get_wtime() - t_start);
+    //printf("[KMEANS] completed in %f sec\n", omp_get_wtime() - t_start);
     return result;
 }
 
 int main(int ac, char *av[])
 {
-    //srand(RANDOM_SEED);
     srand(time(NULL));
 
     if (ac != 8)

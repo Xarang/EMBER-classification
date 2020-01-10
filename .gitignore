@@ -1,11 +1,12 @@
 ember
 kmeans/output/*
-env/*
+python/env/*
 doc/*
 *.swp
 *.vscode
 *.o
 *.out
 *.csv
+*.dat
 __pycache__/*
 dataset/*
