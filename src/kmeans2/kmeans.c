@@ -174,8 +174,7 @@ int main(int ac, char *av[])
     char *datafilename = av[6];
     char *outputfile = av[7];
 
-    printf("[KMEANS] Start kmeans on %s datafile [K = %d, dim = %d, nbVec = %d]\n", datafilename, k, dim, nb_vec);
-
+    printf("Start Kmeans on %s datafile [K = %d, dim = %d, nbVec = %d]\n", av[6], k, dim, nb_vec);
     float *tab = load_data(datafilename, nb_vec, dim);
     unsigned char * classif = kmeans(tab, nb_vec, dim, k, max_iter);
 

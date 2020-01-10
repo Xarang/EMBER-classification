@@ -11,7 +11,6 @@ from keras import utils
 from keras.utils import plot_model
 
 from dnn.dnn import build_dnn, compile_dnn
-from siamese.siamese import build_siamese, compile_siamese
 
 def log(tag, message, time_start = None):
     if time_start != None:
@@ -89,7 +88,7 @@ class ember_classification_neural_network:
     def evaluate(self):
         score, metrics = self.model.evaluate(self.validation_data, self.validation_labels, batch_size = 10)
         log("NEURAL NETWORK", "NN evaluation:", self.time_start)
-        log("NEURAL NETWORK", "Score: {}".format(score), self.time_start)
+        log("NEURAL NETWORK", "Loss: {}".format(score), self.time_start)
         log("NEURAL NETWORK", "Accuracy: {}".format(metrics), self.time_start)
 
     ## load
