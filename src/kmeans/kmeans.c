@@ -87,7 +87,7 @@ static inline void compute_means_card(struct kmeans_params *p)
 
 struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k)
 {
-    double t_init = omp_get_wtime();
+    //double t_init = omp_get_wtime();
 
     struct kmeans_params *params = malloc(sizeof(struct kmeans_params));
     params->data = data;
@@ -128,7 +128,7 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
         params->card[i] = 1;
     }
     //check centroids infos
-    printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
+    //printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
     return params;
 }
 
@@ -154,13 +154,11 @@ void kmeans_params_free(struct kmeans_params *p)
 unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
                       unsigned char k, unsigned max_iter)
 {
-    warnx("[KMEANS] entered program.");
     double t_start = omp_get_wtime();
 
     unsigned iter = 0;
     double previous_iteration_error = DBL_MAX;
     double error_improvement = DBL_MAX;
-    //double error_improvement_ratio = 1;//DBL_MAX;
 
     struct kmeans_params *p = kmeans_params_init(data, dim, nb_vec, k);
     //as long as we dont reach the maximum iteration number, or the improvement is deemed not enough to justify another iteration
@@ -192,14 +190,14 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
             //sum up the errors
             iteration_total_error += p->error[i];
         }
+        //printf("Iteration: %d. done classification in %f\n", iter, omp_get_wtime() - t1);
         //double t_classification = omp_get_wtime();
-        //printf("Iteration: %d. done classification in %f. Marked %f vectors\n", iter, t_classification - t1);
 
         //update means
         compute_means_card(p);
 
         //double t_mean_card_computation = omp_get_wtime();
-        //printf("Iteration: %d. done mean card computation in %f\n", iter, t_mean_card_computation - t_classification);
+        //printf("Iteration: %d. done mean card computation in %f\n", iter, omp_get_wtime() - t_classification);
 
         //obtain the mean error
         double iteration_mean_error = iteration_total_error / p->nb_vec;
@@ -213,7 +211,6 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     while (iter < max_iter && error_improvement > p->min_error_improvement_to_continue);
     unsigned char *result = p->c;
     kmeans_params_free(p);
-
     printf("[KMEANS] completed in %f sec\n", omp_get_wtime() - t_start);
     return result;
 }
