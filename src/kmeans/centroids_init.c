@@ -181,7 +181,7 @@ unsigned *cluster_initial_2_centroids(struct kmeans_params *p)
         // and distance between both candidates
         unsigned pair[2] = { pairs[i][0], pairs[i][1] };
         double mean_distance_to_other_points = (mean_distance_vector[pair[0]] + mean_distance_vector[pair[1]]) / 2;
-        double potential = fabs(distance_matrix[pair[0]][pair[1]] - mean_distance_to_other_points);
+        double potential = fabs(distance_matrix[pair[0]][pair[1]] - mean_distance_to_other_points * 0.8);
         if (min_potential > potential)
         {
             min_potential = potential;

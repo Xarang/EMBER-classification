@@ -87,7 +87,7 @@ static inline void compute_means_card(struct kmeans_params *p)
 
 struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k)
 {
-    //double t_init = omp_get_wtime();
+    double t_init = omp_get_wtime();
 
     struct kmeans_params *params = malloc(sizeof(struct kmeans_params));
     params->data = data;
@@ -101,17 +101,16 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->mark = calloc(sizeof(unsigned char), nb_vec);
     params->c = calloc(sizeof(char), nb_vec);
 
-    //TODO: find out best variables to put there
     //mark vectors AGGRESSIVELY
-    params->min_error_to_mark = 500000; // min error to mark a vector as rightly placed
+    params->min_error_to_mark = 700000; // min error to mark a vector as rightly placed
     params->min_error_improvement_to_continue = 50000; //min mean error improvement to continue looping
 
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for (unsigned i = 0; i < nb_vec; ++i)
     {
         // we use range [0, 1, 2] to facilitate indexing
         params->c[i] = 0;
-        params->error[i] = 1;//DBL_MAX;
+        params->error[i] = 1;
         params->mark[i] = 1;
     }
     unsigned *values = cluster_initial_2_centroids(params);
@@ -127,8 +126,7 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
         }
         params->card[i] = 1;
     }
-    //check centroids infos
-    //printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
+    printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
     return params;
 }
 
