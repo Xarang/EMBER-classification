@@ -4,7 +4,7 @@
 #include <immintrin.h>
 
 #define SUBSET_SIZE 1000
-#define NB_CANDIDATES 24
+#define NB_CANDIDATES 32
 
 
 /*

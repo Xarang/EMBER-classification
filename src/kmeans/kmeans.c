@@ -104,7 +104,7 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     //TODO: find out best variables to put there
     //mark vectors AGGRESSIVELY
     params->min_error_to_mark = 500000; // min error to mark a vector as rightly placed
-    params->min_error_improvement_to_continue = 10000; //min mean error improvement to continue looping
+    params->min_error_improvement_to_continue = 50000; //min mean error improvement to continue looping
 
     //#pragma omp parallel for
     for (unsigned i = 0; i < nb_vec; ++i)
