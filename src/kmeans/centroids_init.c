@@ -3,8 +3,8 @@
 #include <assert.h>
 #include <immintrin.h>
 
-#define SUBSET_SIZE 1000
-#define NB_CANDIDATES 48
+#define SUBSET_SIZE 1500
+#define NB_CANDIDATES 256
 
 
 /*

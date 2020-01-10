@@ -6,16 +6,11 @@
 
 #pragma GCC target("avx")
 
-#define RANDOM_SEED 512
-
-double distance_computation_occurences = 0;
-
 /*
 ** euclidian distance between 2 vectors of dimension dim
 */
 inline double distance(float *vec1, float *vec2, unsigned dim) 
 {
-    distance_computation_occurences++;
     double dist = 0;
     unsigned vector_size = 8;
     __m256i index = _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7);
@@ -102,7 +97,7 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->c = calloc(sizeof(char), nb_vec);
 
     //mark vectors AGGRESSIVELY
-    params->min_error_to_mark = 700000; // min error to mark a vector as rightly placed
+    params->min_error_to_mark = 100000; // min error to mark a vector as rightly placed
     params->min_error_improvement_to_continue = 50000; //min mean error improvement to continue looping
 
     #pragma omp parallel for
