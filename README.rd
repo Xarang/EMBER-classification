@@ -19,9 +19,12 @@ Once this is done, you can find some premade evaluation scripts in the eval/ dir
 
 ** evaluation scripts **
 
+# eval_classification.py: # the one and only
+evaluation script provided to test kmeans
+Usage: python3 eval_classification.py [path to .dat] [path to Y]
 
 
-# eval_kmeans.py:
+# eval_kmeans2.py: # the 'illegal' kmeans that works based on previous dataset analysis
     ####################################################
     Important Note: on my setup I had some issues with first execution after compilation taking for some reason a LOT of time on first computations,
     then any further execution of kmeans would take normal amount of time to complete. if you notice this just wait for the end of the computation of
