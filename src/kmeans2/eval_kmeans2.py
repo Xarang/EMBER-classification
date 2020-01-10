@@ -18,7 +18,7 @@ nb_try = 1
 if (len(sys.argv) >= 4):
     nb_try = int(sys.argv[3])
 
-kmeans_directory = os.getenv("ESLR_PROJECT_MAIN_DIR") + "src/kmeans/"
+kmeans_directory = os.getenv("ESLR_PROJECT_MAIN_DIR") + "src/kmeans2/"
 kmeans_binary = kmeans_directory + "kmeans"
 output_file = 'out.dat'
 
