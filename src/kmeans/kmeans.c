@@ -29,7 +29,7 @@ inline double distance(float *vec1, float *vec2, unsigned dim)
             +   mul_arr[6] + mul_arr[7];
         dist += sum;
     }
-    return sqrt(dist);
+    return dist;
 }
 
 /*
@@ -97,13 +97,12 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->c = calloc(sizeof(char), nb_vec);
 
     //mark vectors AGGRESSIVELY
-    params->min_error_to_mark = 100000; // min error to mark a vector as rightly placed
+    params->min_error_to_mark = 5000000; // min error to mark a vector as rightly placed
     params->min_error_improvement_to_continue = 50000; //min mean error improvement to continue looping
 
     #pragma omp parallel for
     for (unsigned i = 0; i < nb_vec; ++i)
     {
-        // we use range [0, 1, 2] to facilitate indexing
         params->c[i] = 0;
         params->error[i] = 1;
         params->mark[i] = 1;

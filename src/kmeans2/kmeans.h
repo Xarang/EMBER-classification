@@ -95,5 +95,10 @@ unsigned *cluster_initial_vectors(struct kmeans_params *p);
 */
 unsigned *cluster_initial_2_centroids(struct kmeans_params *p);
 
+/*
+** computes standard deviations of important values in our data
+**
+*/
+void mask_init(float *data, unsigned vec_dim);
 
 #endif /* MY_KMEANS_H */

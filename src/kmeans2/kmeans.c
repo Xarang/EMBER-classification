@@ -63,6 +63,8 @@ static inline void compute_means_card(struct kmeans_params *p)
         add_to_vector(p->means + p->c[i] * p->vec_dim, p->data + i * p->vec_dim);
     }
     divide_mean_vectors(p->means, p->cards, p->k, p->vec_dim);
+    printf("[CARDS][0] %u\n", p->cards[0]);
+    printf("[CARDS][1] %u\n", p->cards[1]);
 }
 
 struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k)
@@ -77,10 +79,11 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->means = calloc(sizeof(float), vec_dim * k);
     params->cards = calloc(sizeof(unsigned), k);
     params->c = calloc(sizeof(char), nb_vec);
-
+    mask_init(data, vec_dim);
     //TODO: find out best variables to put there
     params->min_error_improvement_to_continue = 0.1;
     unsigned *values = cluster_initial_2_centroids(params);
+
     //printf("[KMEANS] got our centroids: %d; %d\n", values[0], values[1]);
 
     // set initial cluster values to values of centroids
@@ -117,7 +120,7 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
     unsigned iter = 0;
     double previous_iteration_error = DBL_MAX;
     double error_delta = DBL_MAX;
-
+    max_iter = 0;
     struct kmeans_params *p = kmeans_params_init(data, dim, nb_vec, k);
     //as long as we dont reach the maximum iteration number, or the improvement is deemed not enough to justify another iteration
     do

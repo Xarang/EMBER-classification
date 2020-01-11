@@ -166,9 +166,9 @@ unsigned *cluster_initial_2_centroids(struct kmeans_params *p)
     centroids[1] = candidates[pair[1]];
     
     //centroids evaluation
-    //printf("[CENTROID INIT] mean distance from centroids[0] to all other points in subset: %f\n", mean_distance_vector[pair[0]]);
-    //printf("[CENTROID INIT] mean distance from centroids[1] to all other points in subset: %f\n", mean_distance_vector[pair[1]]);
-    //printf("[CENTROID INIT] distance between [0] and [1]: %f\n", distance_matrix[pair[0]][pair[1]]);
+    printf("[CENTROID INIT] mean distance from centroids[0] to all other points in subset: %f\n", mean_distance_vector[pair[0]]);
+    printf("[CENTROID INIT] mean distance from centroids[1] to all other points in subset: %f\n", mean_distance_vector[pair[1]]);
+    printf("[CENTROID INIT] distance between [0] and [1]: %f\n", distance_matrix[pair[0]][pair[1]]);
 
     for (size_t i = 0; i < NB_CANDIDATES; i++)
     {
