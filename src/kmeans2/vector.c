@@ -27,11 +27,11 @@ int deviation_compare(void const *a, void const *b)
     return dev_a->val < dev_b->val;
 }
 
-void mask_init(float *data, unsigned vec_dim)
+void mask_init(float *data, unsigned nb_vec, unsigned vec_dim)
 {
-    //get vectors from index 200000 to 201000
-    unsigned start_index = 200000;
-    unsigned subset_size = 1000;
+    //get vectors from a subset of our data
+    unsigned subset_size = 2000;
+    unsigned start_index = rand() % nb_vec - subset_size;
 
     float **vectors = calloc(sizeof(void*), subset_size);
     //matrix containing values of our selected vectors

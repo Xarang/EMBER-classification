@@ -111,7 +111,7 @@ void get_candidate_pairs(double *mean_distance_vector, size_t *nb_candidate_pair
         {
             if (i != j)
             {
-                //if distances are at most 0.8/1.2 of each other
+                //if distances are at most 0.95/1.05 of each other, get this pair of candidates
                 if ((fabs((mean_distance_vector[i] / mean_distance_vector[j]) - 1)) < 0.05)
                 {
                     pairs[*nb_candidate_pairs][0] = i;

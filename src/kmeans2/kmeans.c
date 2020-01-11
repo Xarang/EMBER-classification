@@ -5,6 +5,7 @@
 
 #pragma GCC target("avx")
 
+#define RANDOM_SEED 1024
 
 /*
 ** return closest (min(distance)) cluster of vector `vec` of dimensions `dim`
@@ -22,7 +23,6 @@ inline unsigned char classify(float *vec, double *error, struct kmeans_params *p
     for (unsigned i = 0; i < p->k; ++i) 
     {
         dist = distance(vec, p->means + i * p->vec_dim);
-        //printf("[CLASSIFY] distance to %d: %f\n", i, dist);
         if (dist < dist_min) 
         {
             dist_min = dist;
@@ -44,10 +44,6 @@ static inline void print_result(int iter, double time, float err)
 
 static inline void compute_means_card(struct kmeans_params *p)
 {
-    //TODO: add some computation back to this function
-    //initialise all mean vectors using our initialisation vectors
-    //memcpy(p->means, p->means_init, sizeof(float) * p->vec_dim * p->k);
-    //memcpy(p->cards, p->cards_init, sizeof(unsigned) * p->k);
     //obtain the mean vector by diving all its singular values by the amount of vectors in the cluster
     //compute distance for all non-marked vectors
     memset(p->means, 0, sizeof(float) * p->vec_dim * p->k);
@@ -67,9 +63,9 @@ static inline void compute_means_card(struct kmeans_params *p)
     printf("[CARDS][1] %u\n", p->cards[1]);
 }
 
-struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k)
+struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k, unsigned max_iter)
 {
-    //double t_init = omp_get_wtime();
+    double t_init = omp_get_wtime();
 
     struct kmeans_params *params = malloc(sizeof(struct kmeans_params));
     params->data = data;
@@ -79,20 +75,20 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->means = calloc(sizeof(float), vec_dim * k);
     params->cards = calloc(sizeof(unsigned), k);
     params->c = calloc(sizeof(char), nb_vec);
+    params->max_iter = max_iter;
     mask_init(data, vec_dim);
-    //TODO: find out best variables to put there
     params->min_error_improvement_to_continue = 0.1;
-    unsigned *values = cluster_initial_2_centroids(params);
+    params->max_iter = 0;
+    unsigned *centroids = cluster_initial_2_centroids(params);
+    printf("[KMEANS] got our centroids: %d; %d\n", centroids[0], centroids[1]);
 
-    //printf("[KMEANS] got our centroids: %d; %d\n", values[0], values[1]);
-
-    // set initial cluster values to values of centroids
+    // set initial cluster values to values of chosen qcentroids
     for (unsigned i = 0; i < k; i++)
     {
-        add_to_vector(params->means + i * vec_dim, data + values[i] * vec_dim);
+        add_to_vector(params->means + i * vec_dim, data + centroids[i] * vec_dim);
     }
-    //printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
-    free(values);
+    printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
+    free(centroids);
     return params;
 }
 
@@ -115,13 +111,11 @@ void kmeans_params_free(struct kmeans_params *p)
 unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
                       unsigned char k, unsigned max_iter)
 {
-    //double t_start = omp_get_wtime();
-
+    double t_start = omp_get_wtime();
     unsigned iter = 0;
     double previous_iteration_error = DBL_MAX;
     double error_delta = DBL_MAX;
-    max_iter = 0;
-    struct kmeans_params *p = kmeans_params_init(data, dim, nb_vec, k);
+    struct kmeans_params *p = kmeans_params_init(data, dim, nb_vec, k, max_iter);
     //as long as we dont reach the maximum iteration number, or the improvement is deemed not enough to justify another iteration
     do
     {
@@ -129,21 +123,14 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
         // Classify data
         double iteration_total_error = 0.;
         #pragma omp parallel for reduction(+: iteration_total_error)
-        for (unsigned i = 0; i < nb_vec; ++i) 
+        for (unsigned i = 0; i < p->nb_vec; ++i) 
         {
             double vector_error;
             p->c[i] = classify(data + i * p->vec_dim, &vector_error, p);
             iteration_total_error += vector_error;
         }
-        //double t_classification = omp_get_wtime();
-        //printf("[KMEANS] Iteration: %d. done classification in %f\n", iter, t_classification - t1);
-
         //update means
         compute_means_card(p);
-
-        //double t_mean_card_computation = omp_get_wtime();
-        //printf("[KMEANS] Iteration: %d. done mean card computation in %f. card[0]: %d. card[1]: %d\n",
-        //    iter, t_mean_card_computation - t_classification, p->cards[0], p->cards[1]);
 
         //obtain the mean error
         double iteration_mean_error = iteration_total_error / p->nb_vec;
@@ -155,19 +142,19 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
         print_result(iter, t2 - t1, error_delta);
         iter++;
     }
-    while (iter < max_iter && error_delta > p->min_error_improvement_to_continue);
+    while (iter < p->max_iter && error_delta > p->min_error_improvement_to_continue);
     unsigned char *result = p->c;
     kmeans_params_free(p);
 
-    //printf("[KMEANS] completed in %f sec\n", omp_get_wtime() - t_start);
+    printf("[KMEANS] completed in %f sec\n", omp_get_wtime() - t_start);
     return result;
 }
 
 int main(int ac, char *av[])
 {
-    srand(time(NULL));
+    srand(RANDOM_SEED);
 
-    if (ac != 8)
+    if (ac < 8)
         errx(1, "Usage :\n\t%s <K: int> <maxIter: int> <minErr: float> <dim: int> <nbvec:int> <datafile> <outputClassFile>\n", av[0]);
     unsigned k = atoi(av[1]);
     unsigned max_iter = atoi(av[2]);

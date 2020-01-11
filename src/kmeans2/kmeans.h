@@ -13,7 +13,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
 /*
 ** structure holding all the informations we need for kmeans computation
 ** @param c: contains the cluster assignated to each vector in data
@@ -44,12 +43,8 @@ struct kmeans_params
     double *error;
 
     unsigned char *mark;
-
     double min_error_improvement_to_continue;
-    double min_error_ratio_improvement_to_continue;
-    double min_error_to_mark;
-    double min_error_improvement_to_mark;
-
+    unsigned max_iter;
 };
 
 /*
@@ -96,9 +91,9 @@ unsigned *cluster_initial_vectors(struct kmeans_params *p);
 unsigned *cluster_initial_2_centroids(struct kmeans_params *p);
 
 /*
-** computes standard deviations of important values in our data
+** computes standard deviations of important values in our data, establishes a better feature vector
 **
 */
-void mask_init(float *data, unsigned vec_dim);
+void mask_init(float *data, unsigned nb_vec, unsigned vec_dim);
 
 #endif /* MY_KMEANS_H */
