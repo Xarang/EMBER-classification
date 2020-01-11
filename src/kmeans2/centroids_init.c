@@ -60,6 +60,12 @@ unsigned *get_candidates(unsigned *subset)
     return candidates;
 }
 
+/**
+ * 
+ *  METHODS BELOW ARE USED WHEN K = 2 (main use case)
+ * 
+ * */
+
 /*
 ** returns a 2D array that contains the distance between each candidate
 */
@@ -179,5 +185,75 @@ unsigned *cluster_initial_2_centroids(struct kmeans_params *p)
     free(candidates);
     free(subset);
 
+    return centroids;
+}
+
+/**
+ * 
+ *  METHODS BELOW ARE USED WHEN K > 2
+ * 
+ * */
+
+/*
+** computes squared sum of distances between all points in subset and closest of all centroids
+*/
+static inline double potential(float *data, unsigned vec_dim, unsigned *subset, unsigned *centroids, unsigned nb_centroids)
+{
+    double pot = 0;
+    for (size_t i = 0; i < SUBSET_SIZE; i++)
+    {
+        double min = DBL_MAX;
+        for (size_t j = 0; j < nb_centroids; j++)
+        {
+            double dist = squared_distance(data + vec_dim * subset[i], data + vec_dim * centroids[j]);
+            if (dist < min)
+                min = dist;
+        }
+        pot += min;
+    }
+    //warnx("exited potential with pot: %f", pot);
+    return pot;
+}
+
+/*
+** Initialises centroids using simplified Kmeans+ initialisation algorithm
+** Returns the indexes of the centroids in our vector array.
+*/
+unsigned *cluster_initial_centroids(struct kmeans_params *p)
+{
+    unsigned *subset = get_subset_indexes(p->nb_vec);
+    unsigned *candidates = get_candidates(subset);
+    unsigned *centroids = calloc(sizeof(unsigned), p->k);
+    centroids[0] = rand() % p->nb_vec; //first centroid is random ?
+    unsigned nb_centroids = 1;
+    for (size_t i = 1; i < p->k; i++)
+    {
+        double *potentials = calloc(sizeof(double), NB_CANDIDATES);
+        for (size_t j = 0; j < NB_CANDIDATES; j++)
+        {
+            //temporarily add candidate to centroids and compute its potential
+            centroids[i] = candidates[j];
+            potentials[j] = potential(p->data, p->vec_dim, subset, centroids, nb_centroids + 1);
+        }
+        for (size_t j = 0; j < NB_CANDIDATES; j++)
+        {
+            unsigned n_lesser = 0;
+            unsigned n_greater = 0;
+            for (size_t k = 0; k < NB_CANDIDATES; k++)
+            {
+                if (potentials[j] <= potentials[k])
+                    n_lesser++;
+                if (potentials[j] >= potentials[k])
+                    n_greater++;
+            }
+            if (n_lesser == n_greater)
+            {
+                // we take the candidate with median potential
+                centroids[i] = candidates[j];
+                free(potentials);
+                break;
+            }
+        }
+    }
     return centroids;
 }

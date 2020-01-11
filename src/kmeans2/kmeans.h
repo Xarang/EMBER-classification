@@ -59,9 +59,14 @@ void write_class_in_float_format(unsigned char *data,
         unsigned nb_elt, char *filename);
 
 /*
-** same as distance(), except does not apply sqrt at the end
+** euclidean distance using our computation mask
 */
 double distance(float *vec1, float *vec2);
+
+/*
+** same as distance(), except does not apply sqrt at the end
+*/
+double squared_distance(float *vec1, float *vec2);
 
 /*
 ** divides all mean vectors by the card of their respective cluster (to actually get the mean value)
@@ -89,6 +94,11 @@ unsigned *cluster_initial_vectors(struct kmeans_params *p);
 ** cluster potential calculation
 */
 unsigned *cluster_initial_2_centroids(struct kmeans_params *p);
+
+/*
+** when k != 2, use this less effective method
+*/
+unsigned *cluster_initial_centroids(struct kmeans_params *p);
 
 /*
 ** computes standard deviations of important values in our data, establishes a better feature vector

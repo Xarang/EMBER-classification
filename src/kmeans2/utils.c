@@ -33,16 +33,20 @@ void write_class_in_float_format(unsigned char *data,
     if (!fp)
         err(1, "Cannot create file: `%s`\n", filename);
 
-    double counts[2] = { 0 };
+    double counts[36] = { 0 };
     for (unsigned i = 0; i < nb_elt; ++i) 
     {
-        // from [0, 1, 2] to [-1, 0, 1]
         counts[data[i]]++;
-        float f = data[i]/* - 1*/;
+        float f = data[i];
         fwrite(&f, sizeof(float), 1, fp);
     }
-    printf("outputted %f vectors in cluster #0\n", counts[0]);
-    printf("outputted %f vectors in cluster #1\n", counts[1]);
+    for (unsigned i = 0; i < 36; i++)
+    {
+        if (counts[i])
+        {
+            printf("outputted %f vectors in cluster %u\n", counts[i], i);
+        }
+    }
 
     fclose(fp);
 }

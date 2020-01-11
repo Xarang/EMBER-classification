@@ -5,7 +5,7 @@
 
 #pragma GCC target("avx")
 
-#define RANDOM_SEED 1024
+//#define RANDOM_SEED 1024
 
 /*
 ** return closest (min(distance)) cluster of vector `vec` of dimensions `dim`
@@ -59,8 +59,12 @@ static inline void compute_means_card(struct kmeans_params *p)
         add_to_vector(p->means + p->c[i] * p->vec_dim, p->data + i * p->vec_dim);
     }
     divide_mean_vectors(p->means, p->cards, p->k, p->vec_dim);
-    printf("[CARDS][0] %u\n", p->cards[0]);
-    printf("[CARDS][1] %u\n", p->cards[1]);
+    printf("[KEANS][CARDS] cards: [");
+    for (unsigned i = 0; i < p->k; i++)
+    {
+        printf("%u,", p->cards[i]);
+    }
+    printf("]\n");
 }
 
 struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned nb_vec, unsigned k, unsigned max_iter)
@@ -76,19 +80,21 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->cards = calloc(sizeof(unsigned), k);
     params->c = calloc(sizeof(char), nb_vec);
     params->max_iter = max_iter;
-    mask_init(data, vec_dim);
+    //mask_init(data, nb_vec, vec_dim);
     params->min_error_improvement_to_continue = 0.1;
-    params->max_iter = 0;
-    unsigned *centroids = cluster_initial_2_centroids(params);
-    printf("[KMEANS] got our centroids: %d; %d\n", centroids[0], centroids[1]);
 
-    // set initial cluster values to values of chosen qcentroids
+    unsigned *centroids = NULL;
+    if (params->k > 2)
+        centroids = cluster_initial_centroids(params);
+    else
+        centroids = cluster_initial_2_centroids(params);
+    // set initial cluster values to values of chosen centroids
     for (unsigned i = 0; i < k; i++)
     {
         add_to_vector(params->means + i * vec_dim, data + centroids[i] * vec_dim);
     }
-    printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
     free(centroids);
+    printf("[KMEANS] structure initialisation done in %f sec\n", omp_get_wtime() - t_init);
     return params;
 }
 
@@ -152,8 +158,6 @@ unsigned char *kmeans(float *data, unsigned nb_vec, unsigned dim,
 
 int main(int ac, char *av[])
 {
-    srand(RANDOM_SEED);
-
     if (ac < 8)
         errx(1, "Usage :\n\t%s <K: int> <maxIter: int> <minErr: float> <dim: int> <nbvec:int> <datafile> <outputClassFile>\n", av[0]);
     unsigned k = atoi(av[1]);
