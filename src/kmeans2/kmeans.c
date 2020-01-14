@@ -80,7 +80,7 @@ struct kmeans_params *kmeans_params_init(float *data, unsigned vec_dim, unsigned
     params->cards = calloc(sizeof(unsigned), k);
     params->c = calloc(sizeof(char), nb_vec);
     params->max_iter = max_iter;
-    //mask_init(data, nb_vec, vec_dim);
+    mask_init(data, nb_vec, vec_dim);
     params->min_error_improvement_to_continue = 0.1;
 
     unsigned *centroids = NULL;
