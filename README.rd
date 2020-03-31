@@ -1,41 +1,26 @@
-** ESLR PROJECT 2019 **
+Some AI stuff I worked on last Christmas.
+
 
 author: @Xarang
 
 ###################################################
-
-
-Hello, this is my submission for ESLR recruitement session 2019
 
 To setup the project, ** please execute the script 'setup.sh' **
 It will create a virtual environment in the python directory and install requirements.
 It will also setup a few environment variables in our venv that my evaluation scripts use.
 / ! \ this might take a minute or two as we also create our training set and validation set for further computations.
 
-Once this is done, you can find some premade evaluation scripts in the eval/ directory
-
+Once this is done, you can find some premade evaluation scripts named eval_*
 
 ####################################################
 
 ** evaluation scripts **
 
-# eval_classification.py: # the one and only
-evaluation script provided to test kmeans
+#kmeans
 Usage: python3 eval_classification.py [path to .dat] [path to Y]
 
-
-# eval_kmeans2.py: # the 'illegal' kmeans that works based on previous dataset analysis
-    ####################################################
-    Important Note: on my setup I had some issues with first execution after compilation taking for some reason a LOT of time on first computations,
-    then any further execution of kmeans would take normal amount of time to complete. if you notice this just wait for the end of the computation of
-    kmeans, then relaunch the evaluation
-    ####################################################
+# kmeans2.py:
 Usage: python3 eval_kmeans.py [path to X] [path to Y] [N = 1]
-computes kmeans k=2 on X, then evaluates its cluster repartition with Y:
-- equality of vector distribution among clusters
-    (each cluster having about the same amount of vectors in them)
-- uniformity of each cluster (data of same label clustered together)
-Repeats N time and displays mean results
 
 # eval_classifier.py:
 Usage: python3 eval_classifier.py
