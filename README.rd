@@ -1,5 +1,7 @@
-Some AI stuff I worked on last Christmas.
+multiple approaches to classification of the EMBER dataset: kmeans, sklearn, keras...
 
+
+###################################################
 
 author: @Xarang
 
